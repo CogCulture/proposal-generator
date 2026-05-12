@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CogCulture | Proposal Generator</title>
+  <meta name="description" content="Generate professional proposals with real-time preview and PDF export.">
+  
+  <!-- Favicon -->
+  <link rel="icon" href="assets/img/logo.png" type="image/png">
+
+  <!-- Libraries -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+  <!-- LOADING OVERLAY -->
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-box">
+      <div class="loading-spinner"></div>
+      <div class="loading-text">Generating PDF</div>
+      <div class="loading-sub" id="loadingProgress">Preparing slides…</div>
+    </div>
+  </div>
+
+  <!-- TOP BAR -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <span class="topbar-brand">CogCulture</span>
+      <span class="topbar-divider"></span>
+      <span class="topbar-subtitle">Proposal Generator</span>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn btn-ghost" onclick="clearAll()">Clear</button>
+      <button class="btn btn-primary" id="btn-pdf" onclick="generatePDF()">↓ Export PDF</button>
+    </div>
+  </header>
+
+  <!-- MAIN -->
+  <main class="main">
+    <!-- LEFT PANEL -->
+    <aside class="left-panel">
+      <div class="panel-header">
+        <h1 class="panel-header-title">Proposal Details</h1>
+
+        <div class="field-group">
+          <label class="field-label" for="brandInput">Brand Name</label>
+          <input class="field-input" id="brandInput" type="text" placeholder="e.g. Apple" oninput="renderPreview()">
+        </div>
+
+        <div class="field-group">
+          <label class="field-label" for="ambassadorInput">BA Integration</label>
+          <input class="field-input" id="ambassadorInput" type="text" placeholder="e.g. Katrina Kaif" oninput="renderPreview()">
+        </div>
+
+        <div class="field-row">
+          <div class="field-group" style="flex:1">
+            <label class="field-label" for="costInput">Retainer Cost</label>
+            <input class="field-input" id="costInput" type="text" placeholder="e.g. 20,00,000" oninput="renderPreview()">
+          </div>
+          <div class="field-group" style="flex:1">
+            <label class="field-label" for="paymentInput">Payment Mode</label>
+            <input class="field-input" id="paymentInput" type="text" placeholder="Monthly Advance" oninput="renderPreview()">
+          </div>
+        </div>
+      </div>
+
+      <div class="panel-body">
+        <div class="services-toolbar">
+          <span class="services-label">Services</span>
+          <div class="toolbar-right">
+            <span class="count-badge" id="countBadge">0</span>
+            <button class="select-all-btn" onclick="toggleAll()" id="selectAllBtn">Select all</button>
+          </div>
+        </div>
+
+        <div id="dynamicServices"></div>
+      </div>
+    </aside>
+
+    <!-- RIGHT PANEL -->
+    <section class="right-panel">
+      <div class="preview-header">
+        <h2 class="preview-title">Live Preview</h2>
+        <div class="preview-meta">
+          <span class="page-count" id="pageCount">0 slides</span>
+        </div>
+      </div>
+      <div class="preview-scroll" id="previewScroll">
+        <div class="empty-state">
+          <div class="empty-state-icon">📋</div>
+          <h3>Start building your proposal</h3>
+          <p>Enter a brand name and select services from the left panel. Your proposal will appear here in real time.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Scripts -->
+  <script src="assets/js/services.js"></script>
+  <script src="assets/js/main.js"></script>
+</body>
+</html>
