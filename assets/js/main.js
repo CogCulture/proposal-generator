@@ -212,6 +212,11 @@ const ANNEXURE_DATA = {
       { name: "Internal Communication Video", rows: [
         { id: 43, cat: "Internal Video", task: "Non-shoot video up to 2 mins (stock/AI/internal)", freq: "2–3 annually", notes: "Stock/AI license by client; shoot on actuals" },
       ]},
+      { name: "Reporting & Analytics", rows: [
+        { id: 44, cat: "Analytics", task: "Weekly & monthly performance reports (Meta, Google)", freq: "Ongoing", notes: "—" },
+        { id: 45, cat: "Analytics", task: "Advanced analytics — G4 setup & maintenance", freq: "Ongoing", notes: "—" },
+        { id: 46, cat: "Analytics", task: "Share of voice & sentiment analysis reports", freq: "Monthly / Quarterly", notes: "Tool license by client" },
+      ]},
     ]
   }
 };
@@ -223,17 +228,17 @@ const SERVICE_ANNEXURE_MAP = {
   brand_communication:   { B1: ["Brand Level & Corporate Campaigns", "Sales Promo Campaigns"] },
   packaging:             { B1: ["Packaging"], B2: ["POSM & Collaterals"] },
   social_media:          { B2: ["Print & Outdoor", "Retail & BTL"], C: ["Social Media — Content & Management"] },
-  content_seo:           { C: ["Media Campaign Creatives", "One-to-One / CRM Communication"] },
+  content_seo:           { C: ["One-to-One / CRM Communication"] },
   SEO_GEO:               { C: ["SEO / GEO"] },
-  social_listening:      { C: ["ORM"] },
+  social_listening:      { C: ["ORM", "Reporting & Analytics"] },
   social_crm:            { C: ["ORM"] },
-  analytics_business:    { C: ["Internal Communication Video"] },
-  analytics_reporting:   { C: ["Internal Communication Video"] },
-  google_analytics:      { C: ["SEO / GEO"] },
+  analytics_business:    { C: ["Reporting & Analytics"] },
+  analytics_reporting:   { C: ["Reporting & Analytics"] },
+  google_analytics:      { C: ["Reporting & Analytics"] },
   website_process:       { C: ["Website (D2C & Corporate)"] },
   website:               { C: ["Website (D2C & Corporate)"] },
   influencer_marketing:  { B2: ["PR, Influencer & Experiential"], C: ["Social Media — Content & Management"] },
-  performance_marketing: { C: ["Media Campaign Creatives"] },
+  performance_marketing: { C: ["Media Campaign Creatives", "Reporting & Analytics"] },
   orm:                   { C: ["One-to-One / CRM Communication", "ORM"] },
   media_buying:          { B2: ["B2B — Trade & Channel"] },
   ecommerce:             { C: ["D2C & E-Commerce Content"] },
