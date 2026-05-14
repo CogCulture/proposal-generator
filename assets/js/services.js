@@ -112,29 +112,6 @@ const SERVICES = {
       { items: ['Website strategy document', 'Wireframes for review and agreement', 'Full designs for review and agreement', 'Final mobile-responsive website', 'Note: SEO optimisation, Search Engine Submission, other branding assets are outside scope'] }
     ]
   },
-  website_maintenance: {
-    section: 'Website',
-    name: 'Website — Maintenance',
-    blocks: [
-      {
-        title: 'Project — Website Maintenance',
-        items: [
-          'Content updates',
-          'Updates related to the current website',
-          'Website monitoring'
-        ]
-      },
-      {
-        title: 'Website Maintenance Scope',
-        items: [
-          'We define "Maintenance" as keeping the web site current. It is not intended to be a new design.',
-          'We reserve the right to distinguish between "updates" and "new designs". Changing the navigation, the adding of new pages, graphic changes, buttons, etc. are considered new designs and charged accordingly.',
-          'It is the client\'s responsibility to review updates and notify us of any necessary changes that we need to make. Updates should be provided electronically (by email) as much as possible. Attachments should be in text format (.txt or Word .doc formats are fine). Send digitized pictures in common format such as .jpg, .gif, .ai, .psd, .png, .bmp, etc.',
-          'Website may be using third-party components. We have no control over what third party sites do and take no responsibility for loss of information due to actions of these sites.'
-        ]
-      }
-    ]
-  },
   influencer_marketing: {
     section: 'Digital & Social',
     name: 'Influencer Marketing',
