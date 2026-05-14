@@ -413,7 +413,7 @@ function renderPreview() {
             <div class="commercials-title">Commercials</div>
             <div class="intro-plus">+</div>
             <div class="retainer-label">Retainer Cost</div>
-            <div class="retainer-amount">RS. ${costValue}</div>
+            <div class="retainer-amount">${costValue}</div>
             <div class="payment-label">Mode of Payment</div>
             <div class="payment-value">${paymentValue}</div>
             <div class="intro-plus">+</div>
