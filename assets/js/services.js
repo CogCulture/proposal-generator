@@ -102,7 +102,7 @@ const SERVICES = {
       { title: 'Wireframing', para: 'Once the strategy is agreed on, we\'ll then do a basic wireframe of your new website that will show the navigation, page layouts, copy, etc. This will allow you to understand how the site will look and what messages will be conveyed, and will allow us to iterate quickly until everyone is aligned.', items: [] },
       { title: 'Design', para: 'Once the wireframe is agreed on, we\'ll then turn the wireframe into a high-fidelity design that shows exactly how each page of the website will look. We will present this back to you as an interactive prototype that will allow you to click through the website and experience it as if it was live. We\'ll then iterate and make any final changes in this stage before signing off and beginning development.', items: [] },
       { title: 'Development', para: 'Once the design has been agreed on and signed off, we\'ll then develop the website on the core PHP, developing CMS limited to news, blog and career sections. We use bootstrap design for better UI/UX and thus refrain ourselves from using any specific CMS.', items: [] },
-      { title: 'Signoff, Launch and Training', para: 'Once the website is built, we\'ll jump on a video call and walk you through the new website. Once you\'ve signed off on it, we\'ll push it live and archive your old website in case you need anything from it. Finally, we\'ll do a basic training session with your marketing team so they understand how to edit the website when they need.', items: [] }
+      { title: 'Signoff, Launch and Training', para: 'Once the website is built, we\'ll jump on a video call and walk you through the new website. Once you\'ve signed off on it, we\' push it live and archive your old website in case you need anything from it. Finally, we\'ll do a basic training session with your marketing team so they understand how to edit the website when they need.', items: [] }
     ]
   },
   website: {
@@ -171,9 +171,8 @@ const SERVICES = {
   },
   annexures: {
     section: 'Annexures',
-    name: 'Annexures',
-    blocks: [
-      { title: 'Annexures', items: ['Annexure A', 'Annexure B1', 'Annexure B2', 'Annexure C'] }
-    ]
+    name: 'Annexures Scope',
+    dynamic: true,
+    blocks: []
   }
 };

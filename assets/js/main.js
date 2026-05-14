@@ -1,4 +1,283 @@
 const selectedItems = {};
+const annexureOverrides = {};
+const expandedBlocks = {};
+const expandedAnnexureSections = {};
+
+const ANNEXURE_DATA = {
+  A: {
+    title: "Annexure A",
+    subtitle: "Brand Ambassador (KA) — Integrated Plan | LED Category",
+    sections: [
+      { name: "PR & Announcement", rows: [
+        { id: 1, task: "Press Release — KA Signing", detail: "Full PR copy + media distribution strategy", timing: "Pre-launch", notes: "Coordinate with PR agency for wire distribution" },
+        { id: 2, task: "Media Kit", detail: "Brand story, KA bio, product facts, key visuals (print + digital)", timing: "Pre-launch", notes: "High-res assets for press" },
+        { id: 3, task: "Celebrity Event / Launch Activation", detail: "Concept, collaterals, event AV, post-event content", timing: "Launch Day", notes: "Execution on actuals; 3D by event agency" },
+      ]},
+      { name: "TVC & Audio-Visual", rows: [
+        { id: 4, task: "Hero TVC — 60 sec", detail: "Script, storyboard, production brief (with KA)", timing: "Pre-Season", notes: "Main film production on actuals" },
+        { id: 5, task: "Cut-downs — 30 / 20 / 10 sec", detail: "Edit suite from hero TVC", timing: "Post TVC shoot", notes: "All 3 durations included" },
+        { id: 6, task: "OTT Pre-roll — 4 Variants", detail: "Genre-triggered: Action / Comedy / Sports / Drama", timing: "Post TVC shoot", notes: "Platform trafficking on actuals" },
+        { id: 7, task: "Radio Spot — 30 sec", detail: "KA VO script + music adaptation", timing: "Pre-Season", notes: "Up to 7 vernacular languages" },
+      ]},
+      { name: "Key Visual & Print", rows: [
+        { id: 8, task: "Campaign KV — Master", detail: "Full KA + LED product visual in brand language", timing: "Pre-Season", notes: "Ratios: 16:9, 9:16, 1:1, 4:5" },
+        { id: 9, task: "Newspaper Full-Page Ad", detail: "Broadsheet ad with KA + LED hero shot", timing: "Campaign", notes: "—" },
+        { id: 10, task: "OOH / Hoarding Design", detail: "Outdoor billboard — KA feature", timing: "Campaign", notes: "—" },
+        { id: 11, task: "Trade Magazine Ad", detail: "B2B / trade press with KA", timing: "Campaign", notes: "—" },
+      ]},
+      { name: "Social Media & Digital", rows: [
+        { id: 12, task: "Social Media Content — KA Series", detail: "Reels, static, stories, carousels with KA", timing: "Monthly", notes: "Shoot on actuals; 60%+ video mix" },
+        { id: 13, task: "YouTube Long-form Content", detail: "Unboxing / review / brand story with KA", timing: "Monthly", notes: "Production on actuals" },
+        { id: 14, task: "Paid Social Creatives with KA", detail: "Static / carousel / video — Meta, YT", timing: "Per campaign", notes: "Ratios per platform specs" },
+        { id: 15, task: "Hashtag & UGC Campaign", detail: "KA-seeded UGC concept + tracking", timing: "Per campaign", notes: "—" },
+      ]},
+      { name: "Influencer & Seeding", rows: [
+        { id: 16, task: "KA Influencer Unboxing Programme", detail: "Brief, content review, approval & reporting", timing: "Per launch", notes: "Influencer fees on actuals" },
+        { id: 17, task: "Micro / Nano Influencer Seeding", detail: "Secondary seeding plan around KA activity", timing: "Per campaign", notes: "Influencer fees on actuals" },
+      ]},
+      { name: "Retail & BTL", rows: [
+        { id: 18, task: "In-Store Demo Zone — KA Theme", detail: "KA imagery integrated into demo zone design", timing: "Campaign", notes: "Fabrication on actuals" },
+        { id: 19, task: "Standees & POSM with KA Visual", detail: "KA-featured standees + shelf materials", timing: "Campaign", notes: "Print on actuals" },
+        { id: 20, task: "Dealer Kit — KA Edition", detail: "Channel partner kit with KA assets + USPs", timing: "Campaign", notes: "—" },
+      ]},
+      { name: "Packaging", rows: [
+        { id: 21, task: "Special Edition Box (KA)", detail: "Limited-edition LED box with KA imagery", timing: "On request", notes: "Separate production estimate" },
+        { id: 22, task: "Unboxing Insert Card — KA", detail: "Personalised insert with KA message", timing: "On request", notes: "—" },
+      ]},
+      { name: "Internal & Trade", rows: [
+        { id: 23, task: "Sales Team Pitch Deck — KA", detail: "Internal deck showcasing KA campaign strategy", timing: "Pre-Season", notes: "—" },
+        { id: 24, task: "Dealer / Trade Communication", detail: "KA announcement to channel partners", timing: "Pre-launch", notes: "—" },
+      ]},
+    ]
+  },
+  B1: {
+    title: "Annexure B/1",
+    subtitle: "Creative ATL Scope of Work | LED · FAN · COOLER",
+    sections: [
+      { name: "Brand Level & Corporate Campaigns", rows: [
+        { id: 1, cat: "Brand Campaign", task: "Corporate 360 campaign — concept, master KV, sub-master styles", freq: "Annual", notes: "OOH / Digital / POSM style; 2–3 sub-styles" },
+        { id: 2, cat: "Brand Campaign", task: "Product category campaigns — concept + execution", freq: "Per launch", notes: "Brand track on actuals; third-party costs extra" },
+        { id: 3, cat: "Brand Campaign", task: "Main campaign assets: KV, teasers, main film, radio, sustenance idea", freq: "360 approach", notes: "Main film production on actuals" },
+        { id: 4, cat: "Brand Campaign", task: "Vernacular adaptation — main film & radio", freq: "Up to 7 languages", notes: "Per platform specs" },
+      ]},
+      { name: "Sales Promo Campaigns", rows: [
+        { id: 5, cat: "Sales Promo", task: "Monthly sales promo — master + layouts", freq: "Monthly", notes: "—" },
+        { id: 6, cat: "Sales Promo", task: "Season / festive campaign — POSM, digital, print", freq: "Per season", notes: "—" },
+        { id: 7, cat: "Sales Promo", task: "Topical campaign (New Year, Valentine, etc.)", freq: "Monthly", notes: "—" },
+      ]},
+      { name: "TVC & Radio", rows: [
+        { id: 8, cat: "TVC", task: "Hero TVC — 60 sec", freq: "Annual per category", notes: "Production on actuals" },
+        { id: 9, cat: "TVC", task: "Cut-downs — 30 / 20 / 10 sec", freq: "Per hero film", notes: "Included" },
+        { id: 10, cat: "TVC", task: "OTT pre-roll variants — 4 genre triggers", freq: "Per campaign", notes: "Action / Comedy / Sports / Drama" },
+        { id: 11, cat: "Radio", task: "Radio spot — 30 sec", freq: "Per campaign", notes: "Up to 7 vernacular languages" },
+      ]},
+      { name: "Photography", rows: [
+        { id: 12, cat: "Photography", task: "Hero campaign shoot", freq: "Per campaign", notes: "Charged on actuals" },
+        { id: 13, cat: "Photography", task: "Lifestyle scenario shoot", freq: "As required", notes: "Charged on actuals" },
+        { id: 14, cat: "Photography", task: "Product-only studio shoot", freq: "Per SKU", notes: "Charged on actuals" },
+        { id: 15, cat: "Photography", task: "E-commerce white-background shoot", freq: "Per SKU", notes: "Charged on actuals" },
+        { id: 16, cat: "Photography", task: "Behind-the-scenes content shoot", freq: "Per shoot", notes: "Repurposed for social" },
+        { id: 17, cat: "Photography", task: "360° product shoot (36/72 frames)", freq: "Per online SKU", notes: "Charged on actuals" },
+        { id: 18, cat: "Photography", task: "Product 3D modelling & renders", freq: "As required", notes: "Charged extra" },
+      ]},
+      { name: "Packaging", rows: [
+        { id: 19, cat: "Packaging", task: "Master carton design", freq: "Per SKU", notes: "Print on actuals" },
+        { id: 20, cat: "Packaging", task: "Inner box & flap messaging", freq: "Per SKU", notes: "—" },
+        { id: 21, cat: "Packaging", task: "Remote control sleeve (LED)", freq: "Per SKU", notes: "LED category" },
+        { id: 22, cat: "Packaging", task: "Manual cover design", freq: "Per SKU", notes: "Content by client" },
+        { id: 23, cat: "Packaging", task: "Unboxing insert card", freq: "Per SKU", notes: "—" },
+        { id: 24, cat: "Packaging", task: "QR code integration", freq: "Per SKU", notes: "URL by client" },
+      ]},
+    ]
+  },
+  B2: {
+    title: "Annexure B/2",
+    subtitle: "Creative ATL Scope of Work (continued)",
+    sections: [
+      { name: "POSM & Collaterals", rows: [
+        { id: 25, cat: "POSM", task: "Poster — all categories with 3D mock-ups", freq: "Monthly", notes: "—" },
+        { id: 26, cat: "POSM", task: "Sticker / shelf talker", freq: "Monthly", notes: "—" },
+        { id: 27, cat: "POSM", task: "Dangler A4 (double-sided)", freq: "Monthly", notes: "—" },
+        { id: 28, cat: "POSM", task: "Crowner / table tent cards / wobblers", freq: "Monthly", notes: "Sampling/proofs extra" },
+        { id: 29, cat: "POSM", task: "Standee", freq: "Monthly", notes: "—" },
+        { id: 30, cat: "POSM", task: "Product / counter display unit", freq: "Per requirement", notes: "—" },
+        { id: 31, cat: "POSM", task: "Leaflet / multi-fold brochure", freq: "Quarterly", notes: "—" },
+        { id: 32, cat: "POSM", task: "In-shop branding / hoarding (multi-ratio)", freq: "Per requirement", notes: "Ratios: 1:1, 1:2, 1:3, 1:4, 2:1, 3:1" },
+        { id: 33, cat: "POSM", task: "Quarterly newsletter (40+ pages)", freq: "Quarterly", notes: "Content by client" },
+        { id: 34, cat: "POSM", task: "Dealer partner greeting creatives", freq: "8–10 quarterly", notes: "Birthday, anniversary, special events" },
+      ]},
+      { name: "Print & Outdoor", rows: [
+        { id: 35, cat: "Print / OOH", task: "Newspaper full-page ad", freq: "Per campaign", notes: "—" },
+        { id: 36, cat: "Print / OOH", task: "OOH / hoarding design", freq: "Per campaign", notes: "—" },
+        { id: 37, cat: "Print / OOH", task: "Cinema slide", freq: "Per campaign", notes: "—" },
+        { id: 38, cat: "Print / OOH", task: "Trade magazine ad", freq: "Quarterly", notes: "—" },
+      ]},
+      { name: "Retail & BTL", rows: [
+        { id: 39, cat: "Retail / BTL", task: "In-store demo zone design", freq: "Per requirement", notes: "Fabrication on actuals" },
+        { id: 40, cat: "Retail / BTL", task: "Dealer kit", freq: "Quarterly", notes: "—" },
+        { id: 41, cat: "Retail / BTL", task: "Road show / activation concept", freq: "Per activation", notes: "Execution on actuals" },
+      ]},
+      { name: "B2B — Trade & Channel", rows: [
+        { id: 42, cat: "B2B", task: "Product leaflets", freq: "3–6 monthly", notes: "—" },
+        { id: 43, cat: "B2B", task: "Product brochure (4 pages)", freq: "1 per 6 months", notes: "—" },
+        { id: 44, cat: "B2B", task: "Poster A3", freq: "4 monthly", notes: "—" },
+        { id: 45, cat: "B2B", task: "B2B standee", freq: "2 monthly", notes: "—" },
+        { id: 46, cat: "B2B", task: "Stock AV — animation, script, music", freq: "1 monthly", notes: "Charged extra" },
+        { id: 47, cat: "B2B", task: "Website banners", freq: "6 monthly", notes: "—" },
+        { id: 48, cat: "B2B", task: "EDM (electronic direct mailer)", freq: "4 monthly", notes: "—" },
+        { id: 49, cat: "B2B", task: "Wish posts", freq: "12 annually", notes: "—" },
+      ]},
+      { name: "PR, Influencer & Experiential", rows: [
+        { id: 50, cat: "PR / Influencer", task: "Press release — ambassador signing & launches", freq: "Per event", notes: "—" },
+        { id: 51, cat: "PR / Influencer", task: "Media kit design", freq: "Annual", notes: "—" },
+        { id: 52, cat: "PR / Influencer", task: "Influencer unboxing programme", freq: "Per campaign", notes: "Influencer fees on actuals" },
+        { id: 53, cat: "PR / Influencer", task: "Celebrity event / launch activation", freq: "Per event", notes: "Execution on actuals" },
+        { id: 54, cat: "Experiential", task: "Event rendition, design, creative", freq: "Per event", notes: "3D by event agency" },
+        { id: 55, cat: "Experiential", task: "Event AV", freq: "Per event", notes: "Execution on actuals" },
+      ]},
+      { name: "Internal & Value-Add", rows: [
+        { id: 56, cat: "Internal", task: "Sales team pitch deck", freq: "Per season", notes: "—" },
+        { id: 57, cat: "Internal", task: "Product catalogue", freq: "Bi-annual", notes: "—" },
+        { id: 58, cat: "Internal", task: "Warranty card & after-sales comms", freq: "Per SKU", notes: "—" },
+        { id: 59, cat: "Internal", task: "Competitor analysis", freq: "Quarterly", notes: "—" },
+        { id: 60, cat: "Internal", task: "Copywriting — news / magazine articles", freq: "As required", notes: "—" },
+        { id: 61, cat: "Internal", task: "Innovative brand/category ideas", freq: "Quarterly", notes: "—" },
+        { id: 62, cat: "Internal", task: "Support on important presentations", freq: "As required", notes: "—" },
+        { id: 63, cat: "Internal", task: "Award entries", freq: "As required", notes: "Charged extra" },
+        { id: 64, cat: "Internal", task: "Collaboration / sponsorship ideas", freq: "Quarterly", notes: "—" },
+        { id: 65, cat: "Internal", task: "Stock / image library subscription", freq: "Annual", notes: "Charged extra" },
+      ]},
+    ]
+  },
+  C: {
+    title: "Annexure C",
+    subtitle: "Digital Scope of Work | All Categories",
+    sections: [
+      { name: "Social Media — Content & Management", rows: [
+        { id: 1, cat: "Social Media", task: "Static posts with copies", freq: "20–30 per month", notes: "All product categories" },
+        { id: 2, cat: "Social Media", task: "Video / Reel / YT Shorts with copies", freq: "20–30 per month", notes: "Production-led video & shoot on actuals" },
+        { id: 3, cat: "Social Media", task: "Story adaptations (engagement, offers, brand)", freq: "20–30 per month", notes: "—" },
+        { id: 4, cat: "Social Media", task: "Content calendar — monthly", freq: "Monthly", notes: "Shared 7 days in advance" },
+        { id: 5, cat: "Social Media", task: "Platform strategy (IG, YT, Twitter-X, FB)", freq: "Annual", notes: "—" },
+        { id: 6, cat: "Social Media", task: "Reels series concept", freq: "Quarterly", notes: "—" },
+        { id: 7, cat: "Social Media", task: "YouTube long-form series", freq: "Quarterly", notes: "Production on actuals" },
+        { id: 8, cat: "Social Media", task: "Hashtag & UGC campaign", freq: "Per campaign", notes: "—" },
+        { id: 9, cat: "Social Media", task: "Topical production-led content", freq: "1 per quarter", notes: "Production charged separately" },
+        { id: 10, cat: "Social Media", task: "Handle health management", freq: "Ongoing", notes: "—" },
+        { id: 11, cat: "Social Media", task: "Influencer seeding plan", freq: "Per campaign", notes: "Influencer fees on actuals" },
+        { id: 12, cat: "Social Media", task: "Monthly + quarterly reports", freq: "Monthly / Quarterly", notes: "Reporting tool license by client" },
+      ]},
+      { name: "Media Campaign Creatives", rows: [
+        { id: 13, cat: "Media Creative", task: "All media adaptations (Google, PMAX, YT, Meta)", freq: "1–2 campaigns/qtr", notes: "Adaptation from Intex team" },
+        { id: 14, cat: "Media Creative", task: "Rich media banners", freq: "10 per campaign", notes: "—" },
+        { id: 15, cat: "Media Creative", task: "Master banners (3) + 60 adaptations", freq: "3 masters + 60 adapts", notes: "—" },
+        { id: 16, cat: "Media Creative", task: "Discovery Ads with video", freq: "3 adapts", notes: "—" },
+        { id: 17, cat: "Media Creative", task: "Facebook carousels (3 masters)", freq: "3 masters", notes: "—" },
+        { id: 18, cat: "Media Creative", task: "HTML banner + 20 adapts", freq: "1 master + 20 adapts", notes: "—" },
+        { id: 19, cat: "Media Creative", task: "Text ad copies", freq: "As required", notes: "—" },
+      ]},
+      { name: "One-to-One / CRM Communication", rows: [
+        { id: 20, cat: "CRM / One-to-One", task: "WhatsApp broadcast creatives", freq: "30–40 annually", notes: "Stock license by client" },
+        { id: 21, cat: "CRM / One-to-One", task: "Email marketing templates", freq: "12–15 annually", notes: "—" },
+        { id: 22, cat: "CRM / One-to-One", task: "Office internal creative", freq: "20–24 annually", notes: "—" },
+        { id: 23, cat: "CRM / One-to-One", task: "SMS copies", freq: "As required", notes: "—" },
+      ]},
+      { name: "D2C & E-Commerce Content", rows: [
+        { id: 24, cat: "D2C / E-com", task: "Product listing infographics", freq: "7–12 per SKU", notes: "—" },
+        { id: 25, cat: "D2C / E-com", task: "A+ content basic (creative + text)", freq: "15 SKUs", notes: "—" },
+        { id: 26, cat: "D2C / E-com", task: "A+ content premium", freq: "On request", notes: "Stock/AI license by client" },
+        { id: 27, cat: "D2C / E-com", task: "Merchant center update — Google & Meta", freq: "All SKUs", notes: "—" },
+        { id: 28, cat: "D2C / E-com", task: "Brand store tile creatives", freq: "12–15 tiles", notes: "—" },
+        { id: 29, cat: "D2C / E-com", task: "Amazon / Flipkart banner creatives", freq: "Per campaign", notes: "—" },
+        { id: 30, cat: "D2C / E-com", task: "e-Promoter video", freq: "2–4 per category", notes: "Production charged separately" },
+        { id: 31, cat: "D2C / E-com", task: "SBV video assets (15 & 30 sec)", freq: "2–3 per category", notes: "Charged separately" },
+        { id: 32, cat: "D2C / E-com", task: "360° product shoot frames", freq: "36 / 72 frames per SKU", notes: "Shoot on actuals" },
+        { id: 33, cat: "D2C / E-com", task: "Display advertising banner assets", freq: "5 per campaign", notes: "—" },
+      ]},
+      { name: "Website (D2C & Corporate)", rows: [
+        { id: 34, cat: "Website", task: "Website banners (homepage, product, corporate)", freq: "All products", notes: "Adaptation from Intex team" },
+        { id: 35, cat: "Website", task: "Landing pages — product / campaign", freq: "Per campaign", notes: "HTML development on actuals" },
+        { id: 36, cat: "Website", task: "Website copy — new writing + optimization", freq: "As required", notes: "All categories" },
+      ]},
+      { name: "SEO / GEO", rows: [
+        { id: 37, cat: "SEO/GEO", task: "Technical SEO — metadata, schema, sitemaps, redirects", freq: "Ongoing", notes: "With Japan tech team; AI license by client" },
+        { id: 38, cat: "SEO/GEO", task: "On-page SEO — FAQs, blogs, UI alignment", freq: "2 blogs + FAQs per qtr", notes: "—" },
+        { id: 39, cat: "SEO/GEO", task: "Off-page — guest articles, forums, backlinks", freq: "10–15 articles per qtr", notes: "Backlinks TBD" },
+        { id: 40, cat: "SEO/GEO", task: "Quarterly SEO/GEO audit", freq: "Quarterly", notes: "—" },
+      ]},
+      { name: "ORM", rows: [
+        { id: 41, cat: "ORM", task: "Sprinklr management — comments, response, escalation", freq: "Ongoing", notes: "Tool license by client" },
+        { id: 42, cat: "ORM", task: "Weekly & monthly ORM reports", freq: "Monthly", notes: "—" },
+      ]},
+      { name: "Internal Communication Video", rows: [
+        { id: 43, cat: "Internal Video", task: "Non-shoot video up to 2 mins (stock/AI/internal)", freq: "2–3 annually", notes: "Stock/AI license by client; shoot on actuals" },
+      ]},
+    ]
+  }
+};
+
+const SERVICE_ANNEXURE_MAP = {
+  brand_ambassador:      { A: null },
+  brand_manual:          { B2: ["Internal & Value-Add"] },
+  brand_digital_assets:  { C: ["Website (D2C & Corporate)"] },
+  brand_communication:   { B1: ["Brand Level & Corporate Campaigns", "Sales Promo Campaigns"] },
+  packaging:             { B1: ["Packaging"], B2: ["POSM & Collaterals"] },
+  social_media:          { B2: ["Print & Outdoor", "Retail & BTL"], C: ["Social Media — Content & Management"] },
+  content_seo:           { C: ["Media Campaign Creatives", "One-to-One / CRM Communication"] },
+  SEO_GEO:               { C: ["SEO / GEO"] },
+  social_listening:      { C: ["ORM"] },
+  social_crm:            { C: ["ORM"] },
+  analytics_business:    { C: ["Internal Communication Video"] },
+  analytics_reporting:   { C: ["Internal Communication Video"] },
+  google_analytics:      { C: ["SEO / GEO"] },
+  website_process:       { C: ["Website (D2C & Corporate)"] },
+  website:               { C: ["Website (D2C & Corporate)"] },
+  influencer_marketing:  { B2: ["PR, Influencer & Experiential"], C: ["Social Media — Content & Management"] },
+  performance_marketing: { C: ["Media Campaign Creatives"] },
+  orm:                   { C: ["One-to-One / CRM Communication", "ORM"] },
+  media_buying:          { B2: ["B2B — Trade & Channel"] },
+  ecommerce:             { C: ["D2C & E-Commerce Content"] },
+  video_production:      { B1: ["TVC & Radio", "Photography"] },
+};
+
+function getActiveAnnexures() {
+  const selectedSvcKeys = Object.keys(SERVICES).filter(id => id !== 'annexures' && anyItemsInService(id));
+  const result = {};
+
+  selectedSvcKeys.forEach(svcKey => {
+    const mapping = SERVICE_ANNEXURE_MAP[svcKey];
+    if (!mapping) return;
+
+    Object.entries(mapping).forEach(([annexId, sectionNames]) => {
+      if (!result[annexId]) result[annexId] = {};
+      const annex = ANNEXURE_DATA[annexId];
+      if (!annex) return;
+
+      const targetSections = (sectionNames === null) ? annex.sections.map(s => s.name) : sectionNames;
+      
+      targetSections.forEach(n => {
+        if (!result[annexId][n]) result[annexId][n] = new Set();
+        const section = annex.sections.find(s => s.name === n);
+        if (section) {
+          section.rows.forEach(row => result[annexId][n].add(row));
+        }
+      });
+    });
+  });
+
+  return ["A", "B1", "B2", "C"]
+    .filter(id => result[id] && Object.keys(result[id]).some(sn => result[id][sn].size > 0))
+    .map(id => ({
+      id,
+      sections: ANNEXURE_DATA[id].sections
+        .filter(s => result[id][s.name] && result[id][s.name].size > 0)
+        .map(s => ({
+          name: s.name,
+          rows: Array.from(result[id][s.name]).sort((a,b) => a.id - b.id)
+        })),
+    }));
+}
+
 
 function allItemsInBlock(svcId, blockIdx) {
   const block = SERVICES[svcId].blocks[blockIdx];
@@ -16,6 +295,9 @@ function anyItemsInBlock(svcId, blockIdx) {
   return set.size > 0;
 }
 function anyItemsInService(svcId) {
+  if (svcId === 'annexures') {
+    return getActiveAnnexures().length > 0;
+  }
   return SERVICES[svcId].blocks.some((_, bi) => anyItemsInBlock(svcId, bi));
 }
 function allItemsInService(svcId) {
@@ -53,7 +335,9 @@ function initPanel() {
     sections[s].push(id);
   });
 
-  Object.keys(sections).forEach(sectionName => {
+  const sectionOrder = ['Branding', 'Digital & Social', 'Website', 'Annexures', 'Others'];
+  sectionOrder.forEach(sectionName => {
+    if (!sections[sectionName]) return;
     const sectionDiv = document.createElement('div');
     sectionDiv.className = 'section-group';
     sectionDiv.innerHTML = `<div class="section-label">${sectionName}</div>`;
@@ -77,36 +361,41 @@ function initPanel() {
       const blocksCont = document.createElement('div');
       blocksCont.className = 'blocks-container';
       blocksCont.id = 'blocks-' + svcId;
-      blocksCont.innerHTML = svc.blocks.map((block, bi) => `
-        <div class="block-row" id="block-row-${svcId}-${bi}" onclick="toggleBlock(event,'${svcId}',${bi})">
-          <div class="block-checkbox">
-            <svg class="block-checkbox-mark" viewBox="0 0 10 7" fill="none"><polyline points="1,3.5 4,6.5 9,1" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          </div>
-          <span class="block-name">${block.title || (svc.name + ' Sub-Block ' + (bi + 1))}</span>
-          <button class="block-expand-btn" onclick="toggleBlockExpand(event,'${svcId}',${bi})">
-            <span class="block-expand-arrow" id="block-arrow-${svcId}-${bi}">▼</span>
-          </button>
-        </div>
-        <div class="items-container" id="items-${svcId}-${bi}">
-          ${(block.items || []).map((item, ii) => `
-            <div class="item-row" id="item-row-${svcId}-${bi}-${ii}" onclick="toggleItem(event,'${svcId}',${bi},${ii})">
-              <div class="item-checkbox">
-                <svg class="item-checkbox-mark" viewBox="0 0 10 7" fill="none"><polyline points="1,3.5 4,6.5 9,1" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              </div>
-              <span class="item-name">${item}</span>
+
+      if (svc.dynamic) {
+        blocksCont.classList.add('dynamic-blocks-cont');
+      } else {
+        blocksCont.innerHTML = svc.blocks.map((block, bi) => `
+          <div class="block-row" id="block-row-${svcId}-${bi}" onclick="toggleBlock(event,'${svcId}',${bi})">
+            <div class="block-checkbox">
+              <svg class="block-checkbox-mark" viewBox="0 0 10 7" fill="none"><polyline points="1,3.5 4,6.5 9,1" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </div>
-          `).join('')}
-          <div class="item-add-input-wrapper">
-            <span class="add-plus-icon">+</span>
-            <input class="inline-add-input" placeholder="Add custom item..." onkeydown="handleItemAdd(event, '${svcId}', ${bi})">
+            <span class="block-name">${block.title || (svc.name + ' Sub-Block ' + (bi + 1))}</span>
+            <button class="block-expand-btn" onclick="toggleBlockExpand(event,'${svcId}',${bi})">
+              <span class="block-expand-arrow" id="block-arrow-${svcId}-${bi}">▼</span>
+            </button>
           </div>
-        </div>
-      `).join('') + `
-        <div class="block-add-input-wrapper">
-          <span class="add-plus-icon">+</span>
-          <input class="inline-add-input" style="font-weight:500;" placeholder="Add sub-heading..." onkeydown="handleBlockAdd(event, '${svcId}')">
-        </div>
-      `;
+          <div class="items-container" id="items-${svcId}-${bi}">
+            ${(block.items || []).map((item, ii) => `
+              <div class="item-row" id="item-row-${svcId}-${bi}-${ii}" onclick="toggleItem(event,'${svcId}',${bi},${ii})">
+                <div class="item-checkbox">
+                  <svg class="item-checkbox-mark" viewBox="0 0 10 7" fill="none"><polyline points="1,3.5 4,6.5 9,1" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </div>
+                <span class="item-name">${item}</span>
+              </div>
+            `).join('')}
+            <div class="item-add-input-wrapper">
+              <span class="add-plus-icon">+</span>
+              <input class="inline-add-input" placeholder="Add custom item..." onkeydown="handleItemAdd(event, '${svcId}', ${bi})">
+            </div>
+          </div>
+        `).join('') + `
+          <div class="block-add-input-wrapper">
+            <span class="add-plus-icon">+</span>
+            <input class="inline-add-input" style="font-weight:500;" placeholder="Add sub-heading..." onkeydown="handleBlockAdd(event, '${svcId}')">
+          </div>
+        `;
+      }
       sectionDiv.appendChild(blocksCont);
     });
     container.appendChild(sectionDiv);
@@ -164,6 +453,9 @@ function toggleBlockExpand(e, svcId, bi) {
   if (!el || !arrow) return;
   const open = el.classList.toggle('open');
   arrow.classList.toggle('open', open);
+  
+  const key = `${svcId}-${bi}`;
+  expandedBlocks[key] = open;
 }
 
 function toggleService(e, svcId) {
@@ -202,7 +494,7 @@ function refreshServiceUI(svcId) {
   svcRow.classList.toggle('active', hasAny);
   const cb = svcRow.querySelector('.checkbox');
   const mark = svcRow.querySelector('.checkbox-mark');
-  
+
   if (hasAny && !hasAll) {
     cb.style.background = 'rgba(200,55,43,0.5)';
     cb.style.borderColor = 'var(--red)';
@@ -211,6 +503,11 @@ function refreshServiceUI(svcId) {
     cb.style.background = '';
     cb.style.borderColor = '';
     if (mark) mark.style.opacity = '';
+  }
+
+  if (svc.dynamic) {
+    if (svcId === 'annexures') renderAnnexureSidebar();
+    return;
   }
 
   svc.blocks.forEach((block, bi) => {
@@ -232,6 +529,84 @@ function refreshServiceUI(svcId) {
 
 function refreshAllUI() {
   Object.keys(SERVICES).forEach(refreshServiceUI);
+  // Always refresh annexures if it depends on others
+  if (SERVICES.annexures) renderAnnexureSidebar();
+}
+
+function renderAnnexureSidebar() {
+  const container = document.getElementById('blocks-annexures');
+  if (!container) return;
+  
+  // Force a small delay to ensure all state updates are processed
+  const activeAnnexures = getActiveAnnexures();
+
+  if (activeAnnexures.length === 0) {
+    container.innerHTML = `<div style="padding:20px; font-size:12px; color:rgba(255,255,255,0.3); text-align:center; font-style:italic;">Select services above to populate annexures</div>`;
+    return;
+  }
+
+  let html = '';
+  activeAnnexures.forEach((annex, ai) => {
+    const key = `annexures-${ai}`;
+    const isBlockOpen = expandedBlocks[key] !== false; // Default open
+    
+    html += `
+      <div class="block-row active" onclick="toggleBlockExpand(event, 'annexures', ${ai})">
+        <div class="block-checkbox"><div class="block-checkbox-mark"></div></div>
+        <span class="block-name">Annexure ${annex.id}</span>
+        <button class="block-expand-btn">
+          <span class="block-expand-arrow ${isBlockOpen ? 'open' : ''}" id="block-arrow-annexures-${ai}">▼</span>
+        </button>
+      </div>
+      <div class="items-container ${isBlockOpen ? 'open' : ''}" id="items-annexures-${ai}">
+        ${annex.sections.map((sec, si) => {
+          const secKey = `${annex.id}-${sec.name}`;
+          const isSecOpen = !!expandedAnnexureSections[secKey];
+          
+          return `
+            <div class="item-row active" onclick="toggleAnnexureSectionExpand(event, '${annex.id}', '${sec.name.replace(/'/g, "\\'")}')">
+              <div class="item-checkbox"><div class="item-checkbox-mark"></div></div>
+              <span class="item-name">${sec.name}</span>
+              <span class="svc-expand-arrow ${isSecOpen ? 'open' : ''}" style="margin-left:auto; font-size:8px;">▼</span>
+            </div>
+            <div class="annexure-tasks-wrapper" style="max-height:${isSecOpen ? '2000px' : '0'}; overflow:hidden; transition: max-height 0.3s ease; padding-left:var(--annex-indent); margin-bottom:${isSecOpen ? '10px' : '0'};">
+              ${sec.rows.map(row => {
+                const val = annexureOverrides[`${annex.id}_${row.id}`] || (annex.id === 'A' ? row.timing : row.freq);
+                return `
+                  <div class="annexure-edit-row" style="margin: 8px 12px 12px 0;">
+                    <div class="field-label" style="font-size:9px; color:rgba(255,255,255,0.4); margin-bottom:4px; text-transform:none; letter-spacing:0.02em;">${row.task}</div>
+                    <input type="text" 
+                           class="field-input" 
+                           style="padding: 6px 10px; font-size:12px; background: rgba(0,0,0,0.2);"
+                           value="${val}"
+                           oninput="updateAnnexureOverride('${annex.id}', ${row.id}, this.value)" />
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+  });
+  container.innerHTML = html;
+}
+
+function toggleAnnexureSectionExpand(event, annexId, secName) {
+  event.stopPropagation();
+  const key = `${annexId}-${secName}`;
+  expandedAnnexureSections[key] = !expandedAnnexureSections[key];
+  renderAnnexureSidebar(); // Refresh to apply state
+}
+
+function handleAnnexureOverride(key, val) {
+  annexureOverrides[key] = val;
+  renderPreview();
+}
+
+function updateAnnexureOverride(annexId, rowId, val) {
+  annexureOverrides[`${annexId}_${rowId}`] = val;
+  renderPreview();
 }
 
 function toggleAll() {
@@ -432,21 +807,14 @@ function renderPreview() {
     `);
   }
 
-  if (selectedItems['annexures'] && selectedItems['annexures'][0]) {
-    const annexItems = selectedItems['annexures'][0];
-    const files = ['Annexure_A.jpg', 'Annexure_B1.jpg', 'Annexure_B2.jpg', 'Annexure_C.jpg'];
-    files.forEach((file, idx) => {
-      if (annexItems.has(idx)) {
-        slides.push(`
-          <div class="slide">
-            <div class="slide-inner">
-              <div style="position:absolute;inset:0;"><img src="assets/img/${file}" style="width:100%; height:100%; object-fit:contain; display:block;" /></div>
-            </div>
-          </div>
-        `);
-      }
-    });
-  }
+  // DYNAMIC ANNEXURES BASED ON LOGIC
+  const activeAnnexures = getActiveAnnexures();
+  activeAnnexures.forEach(annex => {
+    if (annex.id === "A") slides.push(annexSlideA(annex.sections));
+    else if (annex.id === "B1") slides.push(annexSlideB1(annex.sections));
+    else if (annex.id === "B2") slides.push(annexSlideB2(annex.sections));
+    else if (annex.id === "C") slides.push(annexSlideC(annex.sections));
+  });
 
   slides.push(`
     <div class="slide">
@@ -496,3 +864,174 @@ document.addEventListener('DOMContentLoaded', () => {
   initPanel();
   renderPreview();
 });
+
+/* ═══════════════════════════════════════════════════════════════
+   ANNEXURE SLIDE GENERATORS
+   Each returns a full .slide HTML string using header.png / footer.png
+   Table styles are scoped inside .annex-slide to avoid conflicts.
+═══════════════════════════════════════════════════════════════ */
+
+const ANNEX_STYLES = `
+<style>
+.annex-slide{font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:7.5px;color:#111;line-height:1}
+.annex-label{font-size:11px;font-weight:700;color:#111;margin:6px 0 5px;letter-spacing:.01em}
+.at{width:100%;border-collapse:collapse;border:1px solid #000;table-layout:fixed}
+.at td{border:1px solid #000;padding:0;vertical-align:top;overflow:hidden}
+/* main header */
+.at .mh td{background:#e00;color:#fff;font-size:8.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;text-align:center;padding:5px 4px;height:18px;line-height:1;vertical-align:middle;border:none}
+/* sub header (Annexure A only) */
+.at .sh td{background:#e00;color:#fff;font-size:7px;font-weight:400;text-align:center;padding:2px 4px;height:11px;line-height:1;vertical-align:middle;border:none}
+.at .sp td{background:#e7ecf4;height:7px;border-left:none;border-right:none;border-top:1px solid #000;border-bottom:none}
+.at .ch td{background:#5b5d60;color:#fff;font-size:6.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;text-align:center;vertical-align:middle;padding:5px 3px 6px;height:18px;line-height:1.2;border:1px solid #000}
+.at .sc td{background:#fff;color:#dd0000;font-size:7px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:2px 4px 2px 5px;height:11px;line-height:1;vertical-align:middle;border:1px solid #000}
+.at .dr td{background:#e7ecf4;height:11px;padding:2px 3px;font-size:7.5px;line-height:1;vertical-align:middle;border:1px solid #000}
+.at .dr.wh td{background:#fff}
+.at .dr td.nc{text-align:center;padding:2px 1px}
+.at .dr.tall td{height:17px;line-height:1.3;vertical-align:middle;padding:2px 3px}
+</style>
+`;
+
+function annexSlideWrap(label, tableHTML) {
+  return `
+    <div class="slide">
+      <div class="slide-inner"><div class="slide-content">
+        <div class="slide-header"><img src="assets/img/header.png" style="width:100%;height:auto;display:block;" /></div>
+        <div class="slide-body annex-slide" style="padding:0 28px;overflow:hidden;">
+          ${ANNEX_STYLES}
+          <div class="annex-label">${label}</div>
+          ${tableHTML}
+        </div>
+        <div class="slide-footer"><img src="assets/img/footer.png" style="width:100%;height:auto;display:block;" /></div>
+      </div></div>
+    </div>`;
+}
+
+function annexSlideA(sections) {
+  let counter = 1;
+  const rowsHTML = sections.map(sec => {
+    const sName = `<tr class="sc"><td colspan="6">${sec.name}</td></tr>`;
+    const sRows = sec.rows.map((row, ri) => {
+      const override = annexureOverrides[`A_${row.id}`];
+      const displayId = counter++;
+      return `
+      <tr class="dr ${ri % 2 === 0 ? 'wh' : ''}">
+        <td class="nc">${displayId}</td>
+        <td>${row.task}</td>
+        <td>${row.detail}</td>
+        <td>${override || row.timing}</td>
+        <td>To Do</td>
+        <td>${row.notes}</td>
+      </tr>`;
+    }).join('');
+    return sName + sRows;
+  }).join('');
+
+  const t = `
+  <table class="at">
+    <colgroup><col style="width:17px"><col style="width:112px"><col style="width:188px"><col style="width:78px"><col style="width:62px"><col style="width:143px"></colgroup>
+    <tbody>
+    <tr class="mh"><td colspan="6">Brand Ambassador (KA) — Integrated Plan &nbsp;|&nbsp; LED Category</td></tr>
+    <tr class="sh"><td colspan="6">KA Integration across TVC · Digital · PR · Retail · Packaging · Social Media</td></tr>
+    <tr class="sp"><td colspan="6"></td></tr>
+    <tr class="ch"><td></td><td>Touchpoint</td><td>Deliverable Detail</td><td>Phase / Timing</td><td>Status</td><td>Notes</td></tr>
+    ${rowsHTML}
+    </tbody>
+  </table>`;
+  return annexSlideWrap('Annexure A', t);
+}
+
+function annexSlideB1(sections) {
+  let counter = 1;
+  const rowsHTML = sections.map(sec => {
+    const sName = `<tr class="sc"><td colspan="5">${sec.name}</td></tr>`;
+    const sRows = sec.rows.map((row, ri) => {
+      const override = annexureOverrides[`B1_${row.id}`];
+      const displayId = counter++;
+      return `
+      <tr class="dr ${ri % 2 === 0 ? 'wh' : ''}">
+        <td class="nc">${displayId}</td>
+        <td>${row.cat || ''}</td>
+        <td>${row.task}</td>
+        <td>${override || row.freq}</td>
+        <td>${row.notes}</td>
+      </tr>`;
+    }).join('');
+    return sName + sRows;
+  }).join('');
+
+  const t = `
+  <table class="at">
+    <colgroup><col style="width:17px"><col style="width:130px"><col style="width:233px"><col style="width:110px"><col style="width:110px"></colgroup>
+    <tbody>
+    <tr class="mh"><td colspan="5">Creative ATL Scope of Work &nbsp;|&nbsp; LED · FAN · COOLER</td></tr>
+    <tr class="sp"><td colspan="5"></td></tr>
+    <tr class="ch"><td></td><td>Category</td><td>Deliverable / Task</td><td>Quantity / Frequency</td><td>Exclusions / Notes</td></tr>
+    ${rowsHTML}
+    </tbody>
+  </table>`;
+  return annexSlideWrap('Annexure B/1', t);
+}
+
+function annexSlideB2(sections) {
+  let counter = 1;
+  const rowsHTML = sections.map(sec => {
+    const sName = `<tr class="sc"><td colspan="5">${sec.name}</td></tr>`;
+    const sRows = sec.rows.map((row, ri) => {
+      const override = annexureOverrides[`B2_${row.id}`];
+      const displayId = counter++;
+      return `
+      <tr class="dr ${ri % 2 === 0 ? 'wh' : ''}">
+        <td class="nc">${displayId}</td>
+        <td>${row.cat || ''}</td>
+        <td>${row.task}</td>
+        <td>${override || row.freq}</td>
+        <td>${row.notes}</td>
+      </tr>`;
+    }).join('');
+    return sName + sRows;
+  }).join('');
+
+  const t = `
+  <table class="at">
+    <colgroup><col style="width:17px"><col style="width:130px"><col style="width:233px"><col style="width:110px"><col style="width:110px"></colgroup>
+    <tbody>
+    <tr class="mh"><td colspan="5">Creative ATL Scope of Work (continued)</td></tr>
+    <tr class="sp"><td colspan="5"></td></tr>
+    <tr class="ch"><td></td><td>Category</td><td>Deliverable / Task</td><td>Quantity / Frequency</td><td>Exclusions / Notes</td></tr>
+    ${rowsHTML}
+    </tbody>
+  </table>`;
+  return annexSlideWrap('Annexure B/2', t);
+}
+
+function annexSlideC(sections) {
+  let counter = 1;
+  const rowsHTML = sections.map(sec => {
+    const sName = `<tr class="sc"><td colspan="5">${sec.name}</td></tr>`;
+    const sRows = sec.rows.map((row, ri) => {
+      const override = annexureOverrides[`C_${row.id}`];
+      const displayId = counter++;
+      return `
+      <tr class="dr ${ri % 2 === 0 ? 'wh' : ''}">
+        <td class="nc">${displayId}</td>
+        <td>${row.cat || ''}</td>
+        <td>${row.task}</td>
+        <td>${override || row.freq}</td>
+        <td>${row.notes}</td>
+      </tr>`;
+    }).join('');
+    return sName + sRows;
+  }).join('');
+
+  const t = `
+  <table class="at">
+    <colgroup><col style="width:17px"><col style="width:110px"><col style="width:200px"><col style="width:100px"><col style="width:173px"></colgroup>
+    <tbody>
+    <tr class="mh"><td colspan="5">Digital Scope of Work &nbsp;|&nbsp; All Categories</td></tr>
+    <tr class="sp"><td colspan="5"></td></tr>
+    <tr class="ch"><td></td><td>Category</td><td>Deliverable / Task</td><td>Quantity / Frequency</td><td>Exclusions / Notes</td></tr>
+    ${rowsHTML}
+    </tbody>
+  </table>`;
+  return annexSlideWrap('Annexure C', t);
+}

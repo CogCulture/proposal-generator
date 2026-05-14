@@ -223,9 +223,10 @@ body {
   padding: 16px 0;
 }
 
-.panel-body::-webkit-scrollbar { width: 3px; }
-.panel-body::-webkit-scrollbar-track { background: transparent; }
-.panel-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+.panel-body::-webkit-scrollbar { width: 6px; }
+.panel-body::-webkit-scrollbar-track { background: rgba(255,255,255,0.02); }
+.panel-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 6px; }
+.panel-body::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.25); }
 
 .services-toolbar {
   display: flex;
@@ -406,7 +407,7 @@ body {
 }
 
 .blocks-container.open {
-  max-height: 1400px;
+  max-height: 5000px;
   opacity: 1;
   margin-bottom: 6px;
 }
