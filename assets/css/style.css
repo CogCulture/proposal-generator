@@ -27,6 +27,7 @@
   --left-rail: 35px;
   --plus-indent: 38px;
   --right-col: 70px;
+  --annex-indent: 24px;
 }
 
 html, body {
@@ -539,6 +540,13 @@ body {
   margin-top: 3px;
   transition: all 0.12s;
   background: transparent;
+}
+.item-checkbox.active {
+  background: var(--red);
+  border-color: var(--red);
+}
+.item-checkbox.active .item-checkbox-mark {
+  opacity: 1;
 }
 
 .item-row.active .item-checkbox {
