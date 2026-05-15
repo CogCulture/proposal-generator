@@ -5,7 +5,6 @@ const annexureDetailOverrides = {};
 const annexureNotesOverrides = {};
 const annexureCatOverrides = {};
 const expandedBlocks = {};
-const expandedServices = {};
 const expandedAnnexureSections = {};
 let annexureEnabled = true;
 const disabledAnnexures = new Set();
@@ -418,12 +417,12 @@ function initPanel() {
           <div class="service-name">${svc.name}</div>
           <div class="service-sub">${(svc.blocks || []).map(b => b.title || '').filter(t => t).join(', ') || 'Service Details'}</div>
         </div>
-        <button class="svc-expand-btn" onclick="toggleExpand(event,'${svcId}')"><span class="svc-expand-arrow${expandedServices[svcId] ? ' open' : ''}" id="svc-arrow-${svcId}">▼</span></button>
+        <button class="svc-expand-btn" onclick="toggleExpand(event,'${svcId}')"><span class="svc-expand-arrow" id="svc-arrow-${svcId}">▼</span></button>
       `;
       sectionDiv.appendChild(svcRow);
 
       const blocksCont = document.createElement('div');
-      blocksCont.className = 'blocks-container' + (expandedServices[svcId] ? ' open' : '');
+      blocksCont.className = 'blocks-container';
       blocksCont.id = 'blocks-' + svcId;
 
       if (svc.dynamic) {
@@ -436,10 +435,10 @@ function initPanel() {
             </div>
             <span class="block-name">${block.title || (svc.name + ' Sub-Block ' + (bi + 1))}</span>
             <button class="block-expand-btn" onclick="toggleBlockExpand(event,'${svcId}',${bi})">
-              <span class="block-expand-arrow${expandedBlocks[`${svcId}-${bi}`] ? ' open' : ''}" id="block-arrow-${svcId}-${bi}">▼</span>
+              <span class="block-expand-arrow" id="block-arrow-${svcId}-${bi}">▼</span>
             </button>
           </div>
-          <div class="items-container${expandedBlocks[`${svcId}-${bi}`] ? ' open' : ''}" id="items-${svcId}-${bi}">
+          <div class="items-container" id="items-${svcId}-${bi}">
             ${(block.items || []).map((item, ii) => `
               <div class="item-row" id="item-row-${svcId}-${bi}-${ii}" 
                    draggable="true"
@@ -514,7 +513,6 @@ function toggleExpand(e, svcId) {
   if (!el || !arrow) return;
   const open = el.classList.toggle('open');
   arrow.classList.toggle('open', open);
-  expandedServices[svcId] = open;
 }
 
 function toggleBlockExpand(e, svcId, bi) {
@@ -589,7 +587,7 @@ function handleItemDrop(e, targetSvcId, targetBi, targetIi) {
 
   const block = SERVICES[targetSvcId].blocks[targetBi];
   const items = block.items;
-  
+
   // Track selected items by value before reordering
   const selectedIndices = selectedItems[targetSvcId][targetBi];
   const selectedValues = new Set();
