@@ -1,6 +1,11 @@
 const selectedItems = {};
 const annexureOverrides = {};
+const annexureTaskOverrides = {};
+const annexureDetailOverrides = {};
+const annexureNotesOverrides = {};
+const annexureCatOverrides = {};
 const expandedBlocks = {};
+const expandedServices = {};
 const expandedAnnexureSections = {};
 let annexureEnabled = true;
 const disabledAnnexures = new Set();
@@ -413,12 +418,12 @@ function initPanel() {
           <div class="service-name">${svc.name}</div>
           <div class="service-sub">${(svc.blocks || []).map(b => b.title || '').filter(t => t).join(', ') || 'Service Details'}</div>
         </div>
-        <button class="svc-expand-btn" onclick="toggleExpand(event,'${svcId}')"><span class="svc-expand-arrow" id="svc-arrow-${svcId}">▼</span></button>
+        <button class="svc-expand-btn" onclick="toggleExpand(event,'${svcId}')"><span class="svc-expand-arrow${expandedServices[svcId] ? ' open' : ''}" id="svc-arrow-${svcId}">▼</span></button>
       `;
       sectionDiv.appendChild(svcRow);
 
       const blocksCont = document.createElement('div');
-      blocksCont.className = 'blocks-container';
+      blocksCont.className = 'blocks-container' + (expandedServices[svcId] ? ' open' : '');
       blocksCont.id = 'blocks-' + svcId;
 
       if (svc.dynamic) {
@@ -431,12 +436,18 @@ function initPanel() {
             </div>
             <span class="block-name">${block.title || (svc.name + ' Sub-Block ' + (bi + 1))}</span>
             <button class="block-expand-btn" onclick="toggleBlockExpand(event,'${svcId}',${bi})">
-              <span class="block-expand-arrow" id="block-arrow-${svcId}-${bi}">▼</span>
+              <span class="block-expand-arrow${expandedBlocks[`${svcId}-${bi}`] ? ' open' : ''}" id="block-arrow-${svcId}-${bi}">▼</span>
             </button>
           </div>
-          <div class="items-container" id="items-${svcId}-${bi}">
+          <div class="items-container${expandedBlocks[`${svcId}-${bi}`] ? ' open' : ''}" id="items-${svcId}-${bi}">
             ${(block.items || []).map((item, ii) => `
-              <div class="item-row" id="item-row-${svcId}-${bi}-${ii}" onclick="toggleItem(event,'${svcId}',${bi},${ii})">
+              <div class="item-row" id="item-row-${svcId}-${bi}-${ii}" 
+                   draggable="true"
+                   ondragstart="handleItemDragStart(event, '${svcId}', ${bi}, ${ii})"
+                   ondragover="handleItemDragOver(event)"
+                   ondragleave="handleItemDragLeave(event)"
+                   ondrop="handleItemDrop(event, '${svcId}', ${bi}, ${ii})"
+                   onclick="toggleItem(event,'${svcId}',${bi},${ii})">
                 <div class="item-checkbox">
                   <svg class="item-checkbox-mark" viewBox="0 0 10 7" fill="none"><polyline points="1,3.5 4,6.5 9,1" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
                 </div>
@@ -503,6 +514,7 @@ function toggleExpand(e, svcId) {
   if (!el || !arrow) return;
   const open = el.classList.toggle('open');
   arrow.classList.toggle('open', open);
+  expandedServices[svcId] = open;
 }
 
 function toggleBlockExpand(e, svcId, bi) {
@@ -545,6 +557,56 @@ function toggleItem(e, svcId, bi, ii) {
   else selectedItems[svcId][bi].add(ii);
   refreshServiceUI(svcId);
   updateCount();
+  renderPreview();
+}
+
+function handleItemDragStart(e, svcId, bi, ii) {
+  e.dataTransfer.setData('text/plain', JSON.stringify({ svcId, bi, ii }));
+  e.target.classList.add('dragging');
+}
+
+function handleItemDragOver(e) {
+  e.preventDefault();
+  const row = e.target.closest('.item-row');
+  if (row) row.classList.add('drag-over');
+}
+
+function handleItemDragLeave(e) {
+  const row = e.target.closest('.item-row');
+  if (row) row.classList.remove('drag-over');
+}
+
+function handleItemDrop(e, targetSvcId, targetBi, targetIi) {
+  e.preventDefault();
+  const row = e.target.closest('.item-row');
+  if (row) row.classList.remove('drag-over');
+
+  const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+  const { svcId: sourceSvcId, bi: sourceBi, ii: sourceIi } = data;
+
+  // Only allow reordering within the same block
+  if (sourceSvcId !== targetSvcId || sourceBi !== targetBi || sourceIi === targetIi) return;
+
+  const block = SERVICES[targetSvcId].blocks[targetBi];
+  const items = block.items;
+  
+  // Track selected items by value before reordering
+  const selectedIndices = selectedItems[targetSvcId][targetBi];
+  const selectedValues = new Set();
+  selectedIndices.forEach(idx => selectedValues.add(items[idx]));
+
+  // Reorder array
+  const [movedItem] = items.splice(sourceIi, 1);
+  items.splice(targetIi, 0, movedItem);
+
+  // Update selectedItems Set with new indices
+  const newSelectedSet = new Set();
+  items.forEach((item, idx) => {
+    if (selectedValues.has(item)) newSelectedSet.add(idx);
+  });
+  selectedItems[targetSvcId][targetBi] = newSelectedSet;
+
+  initPanel(); // Re-render sidebar to show new order
   renderPreview();
 }
 
@@ -640,10 +702,14 @@ function renderAnnexureSidebar() {
                 <span class="svc-expand-arrow ${isSecOpen ? 'open' : ''}" style="font-size:8px;">▼</span>
               </button>
             </div>
-            <div class="annexure-tasks-wrapper" style="max-height:${isSecOpen ? '5000px' : '0'}; overflow:hidden; transition: max-height 0.4s ease; padding-left:var(--annex-indent); margin-bottom:${isSecOpen ? '10px' : '0'};">
+            <div class="annexure-tasks-wrapper" style="max-height:${isSecOpen ? '10000px' : '0'}; overflow:hidden; transition: max-height 0.5s ease; padding-left:var(--annex-indent); margin-bottom:${isSecOpen ? '10px' : '0'};">
               ${sec.rows.map(row => {
         const val = annexureOverrides[`${annex.id}_${row.id}`] || (annex.id === 'A' ? row.timing : row.freq);
         const isRowDisabled = disabledAnnexureRows.has(`${annex.id}_${row.id}`);
+        const taskVal = annexureTaskOverrides[`${annex.id}_${row.id}`] || row.task;
+        const detailVal = annexureDetailOverrides[`${annex.id}_${row.id}`] || row.detail;
+        const notesVal = annexureNotesOverrides[`${annex.id}_${row.id}`] || row.notes;
+        const catVal = annexureCatOverrides[`${annex.id}_${row.id}`] || row.cat;
 
         return `
                   <div class="annexure-edit-row" style="margin: 8px 12px 12px 0; display: flex; align-items: flex-start; gap: 8px;">
@@ -653,12 +719,42 @@ function renderAnnexureSidebar() {
                       <svg class="item-checkbox-mark" viewBox="0 0 10 7" fill="none" style="opacity: ${isRowDisabled ? '0' : '1'}"><polyline points="1,3.5 4,6.5 9,1" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
                     </div>
                     <div style="flex: 1;">
-                      <div class="field-label" style="font-size:9px; color:rgba(255,255,255,0.4); margin-bottom:4px; text-transform:none; letter-spacing:0.02em;">${row.task}</div>
+                      <div class="field-label" style="font-size:9px; color:rgba(255,255,255,0.4); margin-bottom:4px; text-transform:none; letter-spacing:0.02em;">Task Name</div>
                       <input type="text" 
                              class="field-input" 
-                             style="padding: 6px 10px; font-size:12px; background: rgba(0,0,0,0.2);"
+                             style="width: 100%; padding: 6px 10px; font-size:12px; background: rgba(0,0,0,0.2); margin-bottom: 8px;"
+                             value="${taskVal}"
+                             oninput="updateAnnexureTaskOverride('${annex.id}', ${row.id}, this.value)" />
+                      
+                      ${annex.id === 'A' ? `
+                        <div class="field-label" style="font-size:9px; color:rgba(255,255,255,0.4); margin-bottom:4px; text-transform:none; letter-spacing:0.02em;">Deliverable Detail</div>
+                        <input type="text" 
+                               class="field-input" 
+                               style="width: 100%; padding: 6px 10px; font-size:12px; background: rgba(0,0,0,0.2); margin-bottom: 8px;"
+                               value="${detailVal}"
+                               oninput="updateAnnexureDetailOverride('${annex.id}', ${row.id}, this.value)" />
+                      ` : `
+                        <div class="field-label" style="font-size:9px; color:rgba(255,255,255,0.4); margin-bottom:4px; text-transform:none; letter-spacing:0.02em;">Category</div>
+                        <input type="text" 
+                               class="field-input" 
+                               style="width: 100%; padding: 6px 10px; font-size:12px; background: rgba(0,0,0,0.2); margin-bottom: 8px;"
+                               value="${catVal || ''}"
+                               oninput="updateAnnexureCatOverride('${annex.id}', ${row.id}, this.value)" />
+                      `}
+
+                      <div class="field-label" style="font-size:9px; color:rgba(255,255,255,0.4); margin-bottom:4px; text-transform:none; letter-spacing:0.02em;">Timing / Frequency</div>
+                      <input type="text" 
+                             class="field-input" 
+                             style="width: 100%; padding: 6px 10px; font-size:12px; background: rgba(0,0,0,0.2); margin-bottom: 8px;"
                              value="${val}"
                              oninput="updateAnnexureOverride('${annex.id}', ${row.id}, this.value)" />
+                      
+                      <div class="field-label" style="font-size:9px; color:rgba(255,255,255,0.4); margin-bottom:4px; text-transform:none; letter-spacing:0.02em;">Notes</div>
+                      <input type="text" 
+                             class="field-input" 
+                             style="width: 100%; padding: 6px 10px; font-size:12px; background: rgba(0,0,0,0.2);"
+                             value="${notesVal || ''}"
+                             oninput="updateAnnexureNotesOverride('${annex.id}', ${row.id}, this.value)" />
                     </div>
                   </div>
                 `;
@@ -715,6 +811,26 @@ function updateAnnexureOverride(annexId, rowId, val) {
   renderPreview();
 }
 
+function updateAnnexureTaskOverride(annexId, rowId, val) {
+  annexureTaskOverrides[`${annexId}_${rowId}`] = val;
+  renderPreview();
+}
+
+function updateAnnexureDetailOverride(annexId, rowId, val) {
+  annexureDetailOverrides[`${annexId}_${rowId}`] = val;
+  renderPreview();
+}
+
+function updateAnnexureNotesOverride(annexId, rowId, val) {
+  annexureNotesOverrides[`${annexId}_${rowId}`] = val;
+  renderPreview();
+}
+
+function updateAnnexureCatOverride(annexId, rowId, val) {
+  annexureCatOverrides[`${annexId}_${rowId}`] = val;
+  renderPreview();
+}
+
 function toggleAll() {
   const all = Object.keys(SERVICES);
   const anySelected = all.some(id => anyItemsInService(id));
@@ -739,6 +855,10 @@ function clearAll() {
   disabledAnnexures.clear();
   disabledAnnexureRows.clear();
   disabledAnnexureSections.clear();
+  for (let key in annexureTaskOverrides) delete annexureTaskOverrides[key];
+  for (let key in annexureDetailOverrides) delete annexureDetailOverrides[key];
+  for (let key in annexureNotesOverrides) delete annexureNotesOverrides[key];
+  for (let key in annexureCatOverrides) delete annexureCatOverrides[key];
   refreshAllUI();
   updateCount();
   renderPreview();
@@ -1033,15 +1153,18 @@ function annexSlideA(sections) {
     const sName = `<tr class="sc"><td colspan="6">${sec.name}</td></tr>`;
     const sRows = sec.rows.map((row, ri) => {
       const override = annexureOverrides[`A_${row.id}`];
+      const taskOverride = annexureTaskOverrides[`A_${row.id}`];
+      const detailOverride = annexureDetailOverrides[`A_${row.id}`];
+      const notesOverride = annexureNotesOverrides[`A_${row.id}`];
       const displayId = counter++;
       return `
       <tr class="dr ${ri % 2 === 0 ? 'wh' : ''}">
         <td class="nc">${displayId}</td>
-        <td>${row.task}</td>
-        <td>${row.detail}</td>
+        <td>${taskOverride || row.task}</td>
+        <td>${detailOverride || row.detail}</td>
         <td>${override || row.timing}</td>
         <td>To Do</td>
-        <td>${row.notes}</td>
+        <td>${notesOverride || row.notes}</td>
       </tr>`;
     }).join('');
     return sName + sRows;
@@ -1075,14 +1198,17 @@ function annexSlideB1(sections) {
     const sName = `<tr class="sc"><td colspan="5">${sec.name}</td></tr>`;
     const sRows = sec.rows.map((row, ri) => {
       const override = annexureOverrides[`B1_${row.id}`];
+      const taskOverride = annexureTaskOverrides[`B1_${row.id}`];
+      const catOverride = annexureCatOverrides[`B1_${row.id}`];
+      const notesOverride = annexureNotesOverrides[`B1_${row.id}`];
       const displayId = counter++;
       return `
       <tr class="dr ${ri % 2 === 0 ? 'wh' : ''}">
         <td class="nc">${displayId}</td>
-        <td>${row.cat || ''}</td>
-        <td>${row.task}</td>
+        <td>${catOverride || row.cat || ''}</td>
+        <td>${taskOverride || row.task}</td>
         <td>${override || row.freq}</td>
-        <td>${row.notes}</td>
+        <td>${notesOverride || row.notes}</td>
       </tr>`;
     }).join('');
     return sName + sRows;
@@ -1115,14 +1241,17 @@ function annexSlideB2(sections) {
     const sName = `<tr class="sc"><td colspan="5">${sec.name}</td></tr>`;
     const sRows = sec.rows.map((row, ri) => {
       const override = annexureOverrides[`B2_${row.id}`];
+      const taskOverride = annexureTaskOverrides[`B2_${row.id}`];
+      const catOverride = annexureCatOverrides[`B2_${row.id}`];
+      const notesOverride = annexureNotesOverrides[`B2_${row.id}`];
       const displayId = counter++;
       return `
       <tr class="dr ${ri % 2 === 0 ? 'wh' : ''}">
         <td class="nc">${displayId}</td>
-        <td>${row.cat || ''}</td>
-        <td>${row.task}</td>
+        <td>${catOverride || row.cat || ''}</td>
+        <td>${taskOverride || row.task}</td>
         <td>${override || row.freq}</td>
-        <td>${row.notes}</td>
+        <td>${notesOverride || row.notes}</td>
       </tr>`;
     }).join('');
     return sName + sRows;
@@ -1155,14 +1284,17 @@ function annexSlideC(sections) {
     const sName = `<tr class="sc"><td colspan="5">${sec.name}</td></tr>`;
     const sRows = sec.rows.map((row, ri) => {
       const override = annexureOverrides[`C_${row.id}`];
+      const taskOverride = annexureTaskOverrides[`C_${row.id}`];
+      const catOverride = annexureCatOverrides[`C_${row.id}`];
+      const notesOverride = annexureNotesOverrides[`C_${row.id}`];
       const displayId = counter++;
       return `
       <tr class="dr ${ri % 2 === 0 ? 'wh' : ''}">
         <td class="nc">${displayId}</td>
-        <td>${row.cat || ''}</td>
-        <td>${row.task}</td>
+        <td>${catOverride || row.cat || ''}</td>
+        <td>${taskOverride || row.task}</td>
         <td>${override || row.freq}</td>
-        <td>${row.notes}</td>
+        <td>${notesOverride || row.notes}</td>
       </tr>`;
     }).join('');
     return sName + sRows;
