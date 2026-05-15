@@ -1051,7 +1051,7 @@ function annexSlideA(sections) {
   <table class="at">
     <colgroup><col style="width:17px"><col style="width:112px"><col style="width:188px"><col style="width:78px"><col style="width:62px"><col style="width:143px"></colgroup>
     <tbody>
-    <tr class="mh"><td colspan="6">Brand Ambassador — Integrated Plan &nbsp;|&nbsp;</td></tr>
+    <tr class="mh"><td colspan="6">Brand Ambassador — Integrated Plan &nbsp;&nbsp;</td></tr>
     <tr class="sh"><td colspan="6"> TVC · Digital · PR · Retail · Packaging · Social Media</td></tr>
     <tr class="sp"><td colspan="6"></td></tr>
     <tr class="ch"><td></td><td>Touchpoint</td><td>Deliverable Detail</td><td>Phase / Timing</td><td>Status</td><td>Notes</td></tr>
