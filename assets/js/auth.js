@@ -1,22 +1,30 @@
 // ── AUTH.JS ─────────────────────────────────────────────────
-// Handles login / signup modal + session state
+// Handles custom database-backed login / signup modal + session state
 
 let currentUser = null;
 
+// Pure JS SHA-256 password hashing (Web Crypto API)
+async function hashPassword(password) {
+  const msgUint8 = new TextEncoder().encode(password);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
 // ── Session bootstrap (called on every page load)
 async function initAuth() {
-  const db = getDB();
-  if (!db) return;
-  const { data: { session } } = await db.auth.getSession();
-  currentUser = session?.user ?? null;
+  const storedUser = localStorage.getItem('custom_user');
+  if (storedUser) {
+    try {
+      currentUser = JSON.parse(storedUser);
+    } catch (e) {
+      currentUser = null;
+      localStorage.removeItem('custom_user');
+    }
+  } else {
+    currentUser = null;
+  }
   updateAuthUI();
-
-  db.auth.onAuthStateChange((_event, session) => {
-    currentUser = session?.user ?? null;
-    updateAuthUI();
-    // If we're on dashboard, reload proposals
-    if (typeof loadDashboard === 'function') loadDashboard();
-  });
 }
 
 // ── UI: sync sidebar login button
@@ -36,6 +44,11 @@ function updateAuthUI() {
     if (avatar) avatar.textContent = '👤';
     btn.classList.remove('logged-in');
   }
+
+  // Sync editor specific UI elements if present
+  if (typeof updateEditorAuthUI === 'function') {
+    updateEditorAuthUI();
+  }
 }
 
 // ── Modal open/close
@@ -52,10 +65,6 @@ function closeAuthModal() {
 function showAuthTab(tab) {
   document.getElementById('loginForm').style.display  = tab === 'login'  ? 'flex' : 'none';
   document.getElementById('signupForm').style.display = tab === 'signup' ? 'flex' : 'none';
-  
-  // Hide verification view and show tabs + tagline again
-  const verificationSentView = document.getElementById('verificationSentView');
-  if (verificationSentView) verificationSentView.style.display = 'none';
   
   const authTabs = document.querySelector('.auth-tabs');
   if (authTabs) authTabs.style.display = 'flex';
@@ -92,13 +101,55 @@ async function handleLogin(e) {
   btn.disabled = true; btn.textContent = 'Signing in…';
 
   const db = getDB();
-  const { error } = await db.auth.signInWithPassword({ email, password });
-  btn.disabled = false; btn.textContent = 'Sign In';
+  if (!db) {
+    showAuthError('Database connection not available.');
+    btn.disabled = false; btn.textContent = 'Sign In';
+    return;
+  }
 
-  if (error) { showAuthError(error.message); return; }
-  closeAuthModal();
-  if (typeof loadDashboard === 'function') loadDashboard();
-  else window.location.href = 'index.html';
+  try {
+    // 1. Fetch user from custom_users table by email
+    const { data: userRow, error } = await db
+      .from('custom_users')
+      .select('*')
+      .eq('email', email)
+      .maybeSingle();
+
+    if (error) {
+      showAuthError('Error checking credentials: ' + error.message);
+      btn.disabled = false; btn.textContent = 'Sign In';
+      return;
+    }
+
+    if (!userRow) {
+      showAuthError('Invalid email or password.');
+      btn.disabled = false; btn.textContent = 'Sign In';
+      return;
+    }
+
+    // 2. Hash the input password and compare with stored password_hash
+    const passwordHash = await hashPassword(password);
+    if (userRow.password_hash !== passwordHash) {
+      showAuthError('Invalid email or password.');
+      btn.disabled = false; btn.textContent = 'Sign In';
+      return;
+    }
+
+    // 3. Set session
+    currentUser = { id: userRow.id, email: userRow.email };
+    localStorage.setItem('custom_user', JSON.stringify(currentUser));
+    
+    closeAuthModal();
+    updateAuthUI();
+
+    if (typeof loadDashboard === 'function') {
+      loadDashboard();
+    }
+  } catch (err) {
+    showAuthError('Unexpected error: ' + err.message);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Sign In';
+  }
 }
 
 // ── Sign Up
@@ -113,72 +164,68 @@ async function handleSignup(e) {
   btn.disabled = true; btn.textContent = 'Creating account…';
 
   const db = getDB();
-  
-  // Dynamic redirect back to the page the user signed up from (local or GitHub Pages)
-  const redirectUrl = window.location.origin + window.location.pathname;
+  if (!db) {
+    showAuthError('Database connection not available.');
+    btn.disabled = false; btn.textContent = 'Create Account';
+    return;
+  }
 
-  const { error } = await db.auth.signUp({ 
-    email, 
-    password, 
-    options: {
-      emailRedirectTo: redirectUrl
+  try {
+    // 1. Check if user already exists
+    const { data: existingUser, error: checkError } = await db
+      .from('custom_users')
+      .select('id')
+      .eq('email', email)
+      .maybeSingle();
+
+    if (checkError) {
+      showAuthError('Error checking email: ' + checkError.message);
+      btn.disabled = false; btn.textContent = 'Create Account';
+      return;
     }
-  });
-  btn.disabled = false; btn.textContent = 'Create Account';
 
-  if (error) { showAuthError(error.message); return; }
-  
-  showVerificationSent(email);
-}
-
-// ── Show premium verification screen
-function showVerificationSent(email) {
-  // Hide forms, tabs, and taglines
-  const authTabs = document.querySelector('.auth-tabs');
-  if (authTabs) authTabs.style.display = 'none';
-  
-  const authTagline = document.querySelector('.auth-tagline');
-  if (authTagline) authTagline.style.display = 'none';
-
-  document.getElementById('loginForm').style.display = 'none';
-  document.getElementById('signupForm').style.display = 'none';
-  clearAuthError();
-
-  // Show verification view
-  const verificationSentView = document.getElementById('verificationSentView');
-  const emailDisplay = document.getElementById('verificationEmailDisplay');
-  if (emailDisplay) emailDisplay.textContent = email;
-  if (verificationSentView) verificationSentView.style.display = 'flex';
-
-  // Customize mail client link dynamically
-  const gmailBtn = document.getElementById('btnGmail');
-  if (gmailBtn) {
-    const domain = email.split('@')[1]?.toLowerCase();
-    if (domain === 'gmail.com') {
-      gmailBtn.href = 'https://mail.google.com';
-      gmailBtn.textContent = 'Open Gmail';
-      gmailBtn.style.display = 'flex';
-    } else if (domain === 'outlook.com' || domain === 'hotmail.com' || domain === 'live.com') {
-      gmailBtn.href = 'https://outlook.live.com';
-      gmailBtn.textContent = 'Open Outlook';
-      gmailBtn.style.display = 'flex';
-    } else if (domain === 'yahoo.com') {
-      gmailBtn.href = 'https://mail.yahoo.com';
-      gmailBtn.textContent = 'Open Yahoo Mail';
-      gmailBtn.style.display = 'flex';
-    } else {
-      gmailBtn.href = `https://mail.${domain}`;
-      gmailBtn.textContent = 'Open Webmail';
-      if (!domain) {
-        gmailBtn.style.display = 'none';
-      }
+    if (existingUser) {
+      showAuthError('An account with this email already exists.');
+      btn.disabled = false; btn.textContent = 'Create Account';
+      return;
     }
+
+    // 2. Hash password and insert into custom_users
+    const passwordHash = await hashPassword(password);
+    const { data: newRow, error: insertError } = await db
+      .from('custom_users')
+      .insert({ email, password_hash: passwordHash })
+      .select()
+      .single();
+
+    if (insertError) {
+      showAuthError('Could not create account: ' + insertError.message);
+      btn.disabled = false; btn.textContent = 'Create Account';
+      return;
+    }
+
+    // 3. Log them in directly (NO verification required!)
+    currentUser = { id: newRow.id, email: newRow.email };
+    localStorage.setItem('custom_user', JSON.stringify(currentUser));
+    
+    closeAuthModal();
+    updateAuthUI();
+
+    if (typeof loadDashboard === 'function') {
+      loadDashboard();
+    }
+  } catch (err) {
+    showAuthError('Unexpected error during signup: ' + err.message);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Create Account';
   }
 }
 
 // ── Logout
 async function handleLogout() {
-  await getDB().auth.signOut();
+  currentUser = null;
+  localStorage.removeItem('custom_user');
+  updateAuthUI();
   window.location.href = 'index.html';
 }
 

@@ -43,32 +43,6 @@
         <button id="signupSubmitBtn" class="auth-submit" type="submit">Create Account</button>
       </form>
 
-      <!-- EMAIL VERIFICATION SENT -->
-      <div id="verificationSentView" style="display:none;flex-direction:column;align-items:center;text-align:center;gap:16px;margin-top:10px;">
-        <div class="verification-icon-wrapper" style="width: 64px; height: 64px; border-radius: 50%; background: rgba(200, 55, 43, 0.12); display: flex; align-items: center; justify-content: center; border: 1px solid rgba(200, 55, 43, 0.25);">
-          <span style="font-size: 32px;">✉️</span>
-        </div>
-        <h3 style="font-size: 18px; font-weight: 600; color: var(--white); margin: 0;">Verify Your Email</h3>
-        <p style="font-size: 13px; color: var(--muted); line-height: 1.5; margin: 0; padding: 0 10px;">
-          We have sent a security verification link to <strong id="verificationEmailDisplay" style="color: var(--white);"></strong>.
-        </p>
-        <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 12px; font-size: 12px; color: var(--muted); line-height: 1.4; text-align: left; width: 100%;">
-          💡 <strong>Next steps:</strong>
-          <ol style="margin-left: 18px; margin-top: 6px; display: flex; flex-direction: column; gap: 4px;">
-            <li>Open your email inbox.</li>
-            <li>Click the verification link.</li>
-            <li>Return here and sign in.</li>
-          </ol>
-        </div>
-        <div style="display: flex; gap: 10px; width: 100%; margin-top: 10px;">
-          <a id="btnGmail" href="https://mail.google.com" target="_blank" class="auth-submit" style="flex: 1; text-align: center; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 10px; font-size: 13px; margin: 0;">
-            Open Gmail
-          </a>
-          <button class="btn btn-ghost" onclick="showAuthTab('login')" style="flex: 1; padding: 10px; font-size: 13px; border-radius: 8px;">
-            Back to Login
-          </button>
-        </div>
-      </div>
     </div>
   </div>
 
