@@ -1,9 +1,18 @@
 const selectedItems = {};
+let SERVICE_ORDER = {
+  'Branding': ['brand_ambassador', 'brand_manual', 'brand_digital_assets', 'brand_communication', 'packaging', 'video_production'],
+  'Digital & Social': ['social_media', 'content_seo', 'SEO_GEO', 'social_listening', 'social_crm', 'analytics_business', 'analytics_reporting', 'google_analytics', 'influencer_marketing', 'performance_marketing', 'orm', 'media_buying', 'ecommerce'],
+  'Website': ['website_process', 'website'],
+  'Annexures': ['annexures'],
+  'Others': []
+};
 const annexureOverrides = {};
 const annexureTaskOverrides = {};
 const annexureDetailOverrides = {};
 const annexureNotesOverrides = {};
 const annexureCatOverrides = {};
+const annexureHeadingOverrides = {};
+const CUSTOM_ANNEXURE_IDS = new Set();
 const expandedBlocks = {};
 const expandedServices = {};
 const expandedAnnexureSections = {};
@@ -15,7 +24,7 @@ const disabledAnnexureSections = new Set();
 const ANNEXURE_DATA = {
   A: {
     title: "Annexure A",
-    subtitle: "Brand Ambassador (KA) — Integrated Plan | LED Category",
+    subtitle: "Brand Ambassador (KA) — Integrated Plan",
     sections: [
       {
         name: "PR & Announcement", rows: [
@@ -77,7 +86,7 @@ const ANNEXURE_DATA = {
   },
   B1: {
     title: "Annexure B/1",
-    subtitle: "Creative ATL Scope of Work | LED · FAN · COOLER",
+    subtitle: "Creative ATL Scope of Work ",
     sections: [
       {
         name: "Brand Level & Corporate Campaigns", rows: [
@@ -127,7 +136,7 @@ const ANNEXURE_DATA = {
   },
   B2: {
     title: "Annexure B/2",
-    subtitle: "Creative ATL Scope of Work (continued)",
+    subtitle: "Creative ATL Scope of Work",
     sections: [
       {
         name: "POSM & Collaterals", rows: [
@@ -304,7 +313,7 @@ const SERVICE_ANNEXURE_MAP = {
 };
 
 function getActiveAnnexures() {
-  const selectedSvcKeys = Object.keys(SERVICES).filter(id => id !== 'annexures' && anyItemsInService(id));
+  const selectedSvcKeys = getOrderedServiceIds().filter(id => id !== 'annexures' && anyItemsInService(id));
   const result = {};
 
   selectedSvcKeys.forEach(svcKey => {
@@ -328,10 +337,12 @@ function getActiveAnnexures() {
     });
   });
 
-  return ["A", "B1", "B2", "C"]
+  const activeStandard = ["A", "B1", "B2", "C"]
     .filter(id => result[id] && Object.keys(result[id]).some(sn => result[id][sn].size > 0))
     .map(id => ({
       id,
+      title: ANNEXURE_DATA[id].title,
+      subtitle: ANNEXURE_DATA[id].subtitle,
       sections: ANNEXURE_DATA[id].sections
         .filter(s => result[id][s.name] && result[id][s.name].size > 0)
         .map(s => ({
@@ -339,6 +350,21 @@ function getActiveAnnexures() {
           rows: Array.from(result[id][s.name]).sort((a, b) => a.id - b.id)
         })),
     }));
+
+  const activeCustom = [];
+  CUSTOM_ANNEXURE_IDS.forEach(id => {
+    const annex = ANNEXURE_DATA[id];
+    if (annex) {
+      activeCustom.push({
+        id,
+        title: annex.title,
+        subtitle: annex.subtitle,
+        sections: annex.sections || []
+      });
+    }
+  });
+
+  return [...activeStandard, ...activeCustom];
 }
 
 
@@ -388,36 +414,84 @@ function deselectAllInService(svcId) {
   SERVICES[svcId].blocks.forEach((_, bi) => deselectAllInBlock(svcId, bi));
 }
 
+function getOrderedServiceIds() {
+  const sectionOrder = ['Branding', 'Digital & Social', 'Website', 'Annexures', 'Others'];
+  const orderedIds = [];
+  sectionOrder.forEach(sec => {
+    const list = SERVICE_ORDER[sec] || [];
+    list.forEach(id => {
+      if (SERVICES[id] && !orderedIds.includes(id)) {
+        orderedIds.push(id);
+      }
+    });
+  });
+  
+  // Just in case any service is not in SERVICE_ORDER (fallback), append them at the end
+  Object.keys(SERVICES).forEach(id => {
+    if (!orderedIds.includes(id)) {
+      orderedIds.push(id);
+    }
+  });
+  
+  return orderedIds;
+}
+
 function initPanel() {
   const container = document.getElementById('dynamicServices');
   if (!container) return;
   container.innerHTML = '';
-  const sections = {};
+
+  // 1. Sync SERVICE_ORDER with current SERVICES keys
   Object.keys(SERVICES).forEach(id => {
     const s = SERVICES[id].section || 'Others';
-    if (!sections[s]) sections[s] = [];
-    sections[s].push(id);
+    if (!SERVICE_ORDER[s]) SERVICE_ORDER[s] = [];
+    if (!SERVICE_ORDER[s].includes(id)) {
+      SERVICE_ORDER[s].push(id);
+    }
+  });
+
+  // 2. Remove deleted keys from SERVICE_ORDER
+  Object.keys(SERVICE_ORDER).forEach(s => {
+    SERVICE_ORDER[s] = SERVICE_ORDER[s].filter(id => SERVICES[id]);
   });
 
   const sectionOrder = ['Branding', 'Digital & Social', 'Website', 'Annexures', 'Others'];
   sectionOrder.forEach(sectionName => {
-    if (!sections[sectionName]) return;
+    const svcIds = SERVICE_ORDER[sectionName] || [];
+    if (svcIds.length === 0 && sectionName === 'Annexures') return;
+
     const sectionDiv = document.createElement('div');
     sectionDiv.className = 'section-group';
     sectionDiv.innerHTML = `<div class="section-label">${sectionName}</div>`;
 
-    sections[sectionName].forEach(svcId => {
+    svcIds.forEach(svcId => {
       const svc = SERVICES[svcId];
       const svcRow = document.createElement('div');
       svcRow.className = 'service-row';
       svcRow.dataset.id = svcId;
+
+      // Make it draggable (if not annexures)
+      if (sectionName !== 'Annexures') {
+        svcRow.setAttribute('draggable', 'true');
+        svcRow.setAttribute('ondragstart', `handleServiceDragStart(event, '${svcId}')`);
+        svcRow.setAttribute('ondragover', `handleServiceDragOver(event)`);
+        svcRow.setAttribute('ondragleave', `handleServiceDragLeave(event)`);
+        svcRow.setAttribute('ondrop', `handleServiceDrop(event, '${svcId}')`);
+      }
+
       svcRow.onclick = (e) => toggleService(e, svcId);
+
+      const isCustom = svcId.startsWith('custom_');
+
       svcRow.innerHTML = `
         <div class="checkbox"><svg class="checkbox-mark" viewBox="0 0 10 7" fill="none"><polyline points="1,3.5 4,6.5 9,1" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
         <div class="service-info">
           <div class="service-name">${svc.name}</div>
           <div class="service-sub">${(svc.blocks || []).map(b => b.title || '').filter(t => t).join(', ') || 'Service Details'}</div>
         </div>
+        ${isCustom ? `
+          <button class="svc-delete-btn" onclick="deleteService(event, '${svcId}')" title="Delete Service" style="background: none; border: none; cursor: pointer; padding: 3px 5px; border-radius: 4px; color: rgba(255,255,255,0.25); margin-left: 6px; transition: all 0.15s; display: flex; align-items: center; justify-content: center; font-size: 11px;">✕</button>
+        ` : ''}
         <button class="svc-expand-btn" onclick="toggleExpand(event,'${svcId}')"><span class="svc-expand-arrow${expandedServices[svcId] ? ' open' : ''}" id="svc-arrow-${svcId}">▼</span></button>
       `;
       sectionDiv.appendChild(svcRow);
@@ -469,9 +543,125 @@ function initPanel() {
       }
       sectionDiv.appendChild(blocksCont);
     });
+
+    if (sectionName !== 'Annexures') {
+      const addServiceWrapper = document.createElement('div');
+      addServiceWrapper.className = 'service-add-input-wrapper';
+      addServiceWrapper.style.padding = '6px 22px 12px';
+      addServiceWrapper.style.display = 'flex';
+      addServiceWrapper.style.alignItems = 'center';
+      addServiceWrapper.style.gap = '8px';
+      addServiceWrapper.innerHTML = `
+        <span class="add-plus-icon" style="color: rgba(255,255,255,0.3); font-size: 14px;">+</span>
+        <input class="inline-add-input" style="font-weight: 500;" placeholder="Add service to ${sectionName}..." onkeydown="handleServiceAdd(event, '${sectionName}')">
+      `;
+      sectionDiv.appendChild(addServiceWrapper);
+    }
+
     container.appendChild(sectionDiv);
   });
   refreshAllUI();
+}
+
+function handleServiceAdd(e, sectionName) {
+  if (e.key === 'Enter') {
+    const val = e.target.value.trim();
+    if (!val) return;
+    
+    const svcId = 'custom_service_' + Date.now();
+    
+    SERVICES[svcId] = {
+      section: sectionName,
+      name: val,
+      blocks: []
+    };
+    
+    if (!SERVICE_ORDER[sectionName]) SERVICE_ORDER[sectionName] = [];
+    SERVICE_ORDER[sectionName].push(svcId);
+    
+    e.target.value = '';
+    initPanel();
+    renderPreview();
+    
+    expandedServices[svcId] = true;
+    initPanel();
+    
+    setTimeout(() => {
+      const blockCont = document.getElementById('blocks-' + svcId);
+      if (blockCont) {
+        const input = blockCont.querySelector('.inline-add-input');
+        if (input) input.focus();
+      }
+    }, 50);
+  }
+}
+
+function deleteService(e, svcId) {
+  e.stopPropagation();
+  if (!confirm(`Are you sure you want to delete the service "${SERVICES[svcId].name}"?`)) return;
+  
+  delete SERVICES[svcId];
+  delete selectedItems[svcId];
+  delete expandedServices[svcId];
+  
+  initPanel();
+  renderPreview();
+  updateCount();
+}
+
+function handleServiceDragStart(e, svcId) {
+  e.stopPropagation();
+  e.dataTransfer.setData('text/plain', JSON.stringify({ svcId }));
+  e.target.classList.add('dragging');
+}
+
+function handleServiceDragOver(e) {
+  e.preventDefault();
+  const row = e.target.closest('.service-row');
+  if (row) row.classList.add('drag-over');
+}
+
+function handleServiceDragLeave(e) {
+  const row = e.target.closest('.service-row');
+  if (row) row.classList.remove('drag-over');
+}
+
+function handleServiceDrop(e, targetSvcId) {
+  e.preventDefault();
+  const row = e.target.closest('.service-row');
+  if (row) row.classList.remove('drag-over');
+
+  const rawData = e.dataTransfer.getData('text/plain');
+  if (!rawData) return;
+  
+  let data;
+  try {
+    data = JSON.parse(rawData);
+  } catch (err) {
+    return;
+  }
+  
+  const sourceSvcId = data.svcId;
+  if (!sourceSvcId || sourceSvcId === targetSvcId) return;
+
+  const sourceSvc = SERVICES[sourceSvcId];
+  const targetSvc = SERVICES[targetSvcId];
+  if (!sourceSvc || !targetSvc) return;
+
+  if (sourceSvc.section !== targetSvc.section) return;
+
+  const sectionName = sourceSvc.section;
+  const list = SERVICE_ORDER[sectionName];
+  const sourceIdx = list.indexOf(sourceSvcId);
+  const targetIdx = list.indexOf(targetSvcId);
+
+  if (sourceIdx !== -1 && targetIdx !== -1) {
+    const [movedSvcId] = list.splice(sourceIdx, 1);
+    list.splice(targetIdx, 0, movedSvcId);
+
+    initPanel();
+    renderPreview();
+  }
 }
 
 function handleItemAdd(e, svcId, bi) {
@@ -511,10 +701,10 @@ function handleBlockAdd(e, svcId) {
 function deleteBlock(e, svcId, bi) {
   e.stopPropagation();
   if (!confirm(`Are you sure you want to delete the sub-heading "${SERVICES[svcId].blocks[bi].title}"?`)) return;
-  
+
   // Remove block from SERVICES
   SERVICES[svcId].blocks.splice(bi, 1);
-  
+
   // Clean up selectedItems state
   if (selectedItems[svcId]) {
     delete selectedItems[svcId][bi];
@@ -530,7 +720,7 @@ function deleteBlock(e, svcId, bi) {
     });
     selectedItems[svcId] = newSvcSelected;
   }
-  
+
   // Clean up expandedBlocks state
   const newExpandedBlocks = {};
   Object.keys(expandedBlocks).forEach(key => {
@@ -708,11 +898,27 @@ function renderAnnexureSidebar() {
   const container = document.getElementById('blocks-annexures');
   if (!container) return;
 
-  // Force a small delay to ensure all state updates are processed
   const activeAnnexures = getActiveAnnexures();
 
   if (activeAnnexures.length === 0) {
-    container.innerHTML = `<div style="padding:20px; font-size:12px; color:rgba(255,255,255,0.3); text-align:center; font-style:italic;">Select services above to populate annexures</div>`;
+    container.innerHTML = `<div style="padding:20px; font-size:12px; color:rgba(255,255,255,0.3); text-align:center; font-style:italic;">Select services above to populate annexures or create a custom one below</div>`;
+    
+    // Render the add custom annexure input even when empty!
+    const addWrapper = document.createElement('div');
+    addWrapper.className = 'annexure-add-wrapper';
+    addWrapper.style.padding = '12px';
+    addWrapper.style.borderTop = '1px solid rgba(255,255,255,0.06)';
+    addWrapper.style.display = 'flex';
+    addWrapper.style.gap = '8px';
+    addWrapper.innerHTML = `
+      <span style="color: rgba(255,255,255,0.3); font-size: 14px; align-self: center;">+</span>
+      <input type="text" 
+             class="inline-add-input" 
+             style="font-weight: 500; font-size:12px; flex: 1;" 
+             placeholder="Create new blank annexure (e.g. Annexure D)..." 
+             onkeydown="handleCustomAnnexureAdd(event)">
+    `;
+    container.appendChild(addWrapper);
     return;
   }
 
@@ -721,21 +927,36 @@ function renderAnnexureSidebar() {
     const key = `annexures-${ai}`;
     const isBlockOpen = expandedBlocks[key] !== false; // Default open
     const isAnnexDisabled = disabledAnnexures.has(annex.id);
+    const isCustomAnnex = CUSTOM_ANNEXURE_IDS.has(annex.id);
+    const headingVal = annexureHeadingOverrides[annex.id] || getAnnexureDefaultHeading(annex.id);
 
     html += `
       <div class="block-row ${isAnnexDisabled ? '' : 'active'}" onclick="toggleAnnexureVisibility(event, '${annex.id}')">
         <div class="block-checkbox"><div class="block-checkbox-mark"></div></div>
-        <span class="block-name">Annexure ${annex.id}</span>
-        <button class="block-expand-btn" onclick="toggleBlockExpand(event, 'annexures', ${ai})">
+        <span class="block-name">${annex.title || `Annexure ${annex.id}`}</span>
+        ${isCustomAnnex ? `
+          <button class="svc-delete-btn" onclick="deleteCustomAnnexure(event, '${annex.id}')" title="Delete Custom Annexure" style="background: none; border: none; cursor: pointer; padding: 3px 5px; border-radius: 4px; color: rgba(255,255,255,0.25); margin-left: auto; margin-right: 6px; transition: all 0.15s; display: flex; align-items: center; justify-content: center; font-size: 11px;">✕</button>
+        ` : ''}
+        <button class="block-expand-btn" style="${isCustomAnnex ? 'margin-left: 0;' : 'margin-left: auto;'}" onclick="toggleBlockExpand(event, 'annexures', ${ai})">
           <span class="block-expand-arrow ${isBlockOpen ? 'open' : ''}" id="block-arrow-annexures-${ai}">▼</span>
         </button>
       </div>
       <div class="items-container ${isBlockOpen ? 'open' : ''}" id="items-annexures-${ai}">
-        ${annex.sections.map((sec, si) => {
-      const secKey = `${annex.id}-${sec.name}`;
-      const isSecOpen = !!expandedAnnexureSections[secKey];
+        
+        <div class="annexure-main-heading-edit" style="margin: 8px 12px 12px 12px;">
+          <div class="field-label" style="font-size:9px; color:rgba(255,255,255,0.4); margin-bottom:4px; text-transform:none; letter-spacing:0.02em;">Main Heading Banner (Red Block)</div>
+          <input type="text" 
+                 class="field-input" 
+                 style="width: 100%; padding: 6px 10px; font-size:12px; background: rgba(0,0,0,0.2);"
+                 value="${headingVal}"
+                 oninput="updateAnnexureHeadingOverride('${annex.id}', this.value)" />
+        </div>
 
-      return `
+        ${annex.sections.map((sec, si) => {
+          const secKey = `${annex.id}-${sec.name}`;
+          const isSecOpen = !!expandedAnnexureSections[secKey];
+
+          return `
             <div class="item-row ${disabledAnnexureSections.has(`${annex.id}_${sec.name}`) ? '' : 'active'}" 
                  onclick="toggleAnnexureSectionVisibility(event, '${annex.id}', '${sec.name.replace(/'/g, "\\'")}')">
               <div class="item-checkbox">
@@ -750,14 +971,14 @@ function renderAnnexureSidebar() {
             </div>
             <div class="annexure-tasks-wrapper" style="max-height:${isSecOpen ? '10000px' : '0'}; overflow:hidden; transition: max-height 0.5s ease; padding-left:var(--annex-indent); margin-bottom:${isSecOpen ? '10px' : '0'};">
               ${sec.rows.map(row => {
-        const val = annexureOverrides[`${annex.id}_${row.id}`] || (annex.id === 'A' ? row.timing : row.freq);
-        const isRowDisabled = disabledAnnexureRows.has(`${annex.id}_${row.id}`);
-        const taskVal = annexureTaskOverrides[`${annex.id}_${row.id}`] || row.task;
-        const detailVal = annexureDetailOverrides[`${annex.id}_${row.id}`] || row.detail;
-        const notesVal = annexureNotesOverrides[`${annex.id}_${row.id}`] || row.notes;
-        const catVal = annexureCatOverrides[`${annex.id}_${row.id}`] || row.cat;
+                const val = annexureOverrides[`${annex.id}_${row.id}`] || (annex.id === 'A' ? row.timing : row.freq);
+                const isRowDisabled = disabledAnnexureRows.has(`${annex.id}_${row.id}`);
+                const taskVal = annexureTaskOverrides[`${annex.id}_${row.id}`] || row.task;
+                const detailVal = annexureDetailOverrides[`${annex.id}_${row.id}`] || row.detail;
+                const notesVal = annexureNotesOverrides[`${annex.id}_${row.id}`] || row.notes;
+                const catVal = annexureCatOverrides[`${annex.id}_${row.id}`] || row.cat;
 
-        return `
+                return `
                   <div class="annexure-edit-row" style="margin: 8px 12px 12px 0; display: flex; align-items: flex-start; gap: 8px;">
                     <div class="item-checkbox ${isRowDisabled ? '' : 'active'}" 
                          style="margin-top: 2px; flex-shrink: 0;" 
@@ -772,12 +993,12 @@ function renderAnnexureSidebar() {
                              value="${taskVal}"
                              oninput="updateAnnexureTaskOverride('${annex.id}', ${row.id}, this.value)" />
                       
-                      ${annex.id === 'A' ? `
+                      ${(annex.id === 'A' || isCustomAnnex) ? `
                         <div class="field-label" style="font-size:9px; color:rgba(255,255,255,0.4); margin-bottom:4px; text-transform:none; letter-spacing:0.02em;">Deliverable Detail</div>
                         <input type="text" 
                                class="field-input" 
                                style="width: 100%; padding: 6px 10px; font-size:12px; background: rgba(0,0,0,0.2); margin-bottom: 8px;"
-                               value="${detailVal}"
+                               value="${detailVal || ''}"
                                oninput="updateAnnexureDetailOverride('${annex.id}', ${row.id}, this.value)" />
                       ` : `
                         <div class="field-label" style="font-size:9px; color:rgba(255,255,255,0.4); margin-bottom:4px; text-transform:none; letter-spacing:0.02em;">Category</div>
@@ -792,7 +1013,7 @@ function renderAnnexureSidebar() {
                       <input type="text" 
                              class="field-input" 
                              style="width: 100%; padding: 6px 10px; font-size:12px; background: rgba(0,0,0,0.2); margin-bottom: 8px;"
-                             value="${val}"
+                             value="${val || ''}"
                              oninput="updateAnnexureOverride('${annex.id}', ${row.id}, this.value)" />
                       
                       <div class="field-label" style="font-size:9px; color:rgba(255,255,255,0.4); margin-bottom:4px; text-transform:none; letter-spacing:0.02em;">Notes</div>
@@ -804,13 +1025,39 @@ function renderAnnexureSidebar() {
                     </div>
                   </div>
                 `;
-      }).join('')}
+              }).join('')}
+
+              ${isCustomAnnex ? `
+                <div class="annexure-task-add-wrapper" style="margin: 8px 12px 12px 28px;">
+                  <span style="color: rgba(255,255,255,0.3); font-size: 14px; margin-right: 6px;">+</span>
+                  <input class="inline-add-input" placeholder="Add new task..." onkeydown="handleAnnexureRowAdd(event, '${annex.id}', '${sec.name.replace(/'/g, "\\'")}')">
+                </div>
+              ` : ''}
             </div>
           `;
-    }).join('')}
+        }).join('')}
+
+        ${isCustomAnnex ? `
+          <div class="annexure-section-add-wrapper" style="padding: 12px 12px 12px 12px; border-top: 1px solid rgba(255,255,255,0.06);">
+            <span style="color: rgba(255,255,255,0.3); font-size: 14px; margin-right: 6px;">+</span>
+            <input class="inline-add-input" style="font-weight: 500;" placeholder="Add deliverable group (e.g. PR & Media)..." onkeydown="handleAnnexureSectionAdd(event, '${annex.id}')">
+          </div>
+        ` : ''}
       </div>
     `;
   });
+
+  html += `
+    <div class="annexure-add-wrapper" style="padding: 12px; border-top: 1px solid rgba(255,255,255,0.06); display: flex; gap: 8px;">
+      <span style="color: rgba(255,255,255,0.3); font-size: 14px; align-self: center;">+</span>
+      <input type="text" 
+             class="inline-add-input" 
+             style="font-weight: 500; font-size:12px; flex: 1;" 
+             placeholder="Create new blank annexure (e.g. Annexure D)..." 
+             onkeydown="handleCustomAnnexureAdd(event)">
+    </div>
+  `;
+
   container.innerHTML = html;
 }
 
@@ -877,6 +1124,126 @@ function updateAnnexureCatOverride(annexId, rowId, val) {
   renderPreview();
 }
 
+function updateAnnexureHeadingOverride(annexId, val) {
+  annexureHeadingOverrides[annexId] = val;
+  renderPreview();
+}
+
+function getAnnexureDefaultHeading(annexId) {
+  if (annexId === 'A') return 'Brand Ambassador — Integrated Plan';
+  if (annexId === 'B1') return 'Creative ATL Scope of Work';
+  if (annexId === 'B2') return 'Creative ATL Scope of Work';
+  if (annexId === 'C') return 'Digital Scope of Work | All Categories';
+  const customAnnex = ANNEXURE_DATA[annexId];
+  return customAnnex ? customAnnex.subtitle || `Annexure ${annexId}` : `Annexure ${annexId}`;
+}
+
+function handleCustomAnnexureAdd(e) {
+  if (e.key === 'Enter') {
+    const val = e.target.value.trim();
+    if (!val) return;
+    
+    let cleanName = val;
+    let id = val;
+    if (val.toLowerCase().startsWith('annexure ')) {
+      id = val.substring(9).trim();
+    } else {
+      cleanName = 'Annexure ' + val;
+    }
+    
+    if (!id) return;
+    
+    if (ANNEXURE_DATA[id]) {
+      alert("An annexure with this name already exists!");
+      return;
+    }
+    
+    ANNEXURE_DATA[id] = {
+      title: cleanName,
+      subtitle: cleanName + ' — Custom Plan',
+      sections: []
+    };
+    
+    CUSTOM_ANNEXURE_IDS.add(id);
+    
+    e.target.value = '';
+    renderAnnexureSidebar();
+    renderPreview();
+    
+    const activeAn = getActiveAnnexures();
+    const customIdx = activeAn.findIndex(a => a.id === id);
+    if (customIdx !== -1) {
+      expandedBlocks[`annexures-${customIdx}`] = true;
+      renderAnnexureSidebar();
+    }
+  }
+}
+
+function deleteCustomAnnexure(e, annexId) {
+  e.stopPropagation();
+  if (!confirm(`Are you sure you want to delete the custom annexure "${ANNEXURE_DATA[annexId].title}"?`)) return;
+  
+  delete ANNEXURE_DATA[annexId];
+  CUSTOM_ANNEXURE_IDS.delete(annexId);
+  
+  delete annexureHeadingOverrides[annexId];
+  
+  renderAnnexureSidebar();
+  renderPreview();
+}
+
+function handleAnnexureSectionAdd(e, annexId) {
+  if (e.key === 'Enter') {
+    const val = e.target.value.trim();
+    if (!val) return;
+    
+    const annex = ANNEXURE_DATA[annexId];
+    if (!annex) return;
+    
+    if (!annex.sections) annex.sections = [];
+    if (annex.sections.some(s => s.name === val)) {
+      alert("This deliverable group already exists!");
+      return;
+    }
+    
+    annex.sections.push({
+      name: val,
+      rows: []
+    });
+    
+    e.target.value = '';
+    renderAnnexureSidebar();
+    renderPreview();
+  }
+}
+
+function handleAnnexureRowAdd(e, annexId, secName) {
+  if (e.key === 'Enter') {
+    const val = e.target.value.trim();
+    if (!val) return;
+    
+    const annex = ANNEXURE_DATA[annexId];
+    if (!annex) return;
+    
+    const section = annex.sections.find(s => s.name === secName);
+    if (!section) return;
+    
+    const newRowId = Date.now();
+    section.rows.push({
+      id: newRowId,
+      task: val,
+      detail: '',
+      timing: 'Pre-launch',
+      freq: 'Once',
+      notes: '—'
+    });
+    
+    e.target.value = '';
+    renderAnnexureSidebar();
+    renderPreview();
+  }
+}
+
 function toggleAll() {
   const all = Object.keys(SERVICES);
   const anySelected = all.some(id => anyItemsInService(id));
@@ -940,7 +1307,7 @@ function renderPreview() {
   const paymentValue = document.getElementById('paymentInput')?.value.trim() || 'Monthly Advance';
   const scroll = document.getElementById('previewScroll');
   if (!scroll) return;
-  const selectedList = Object.keys(SERVICES).filter(id => anyItemsInService(id));
+  const selectedList = getOrderedServiceIds().filter(id => anyItemsInService(id));
 
   if (!selectedList.length && !document.getElementById('brandInput')?.value.trim()) {
     scroll.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📋</div><h3>Start building your proposal</h3><p>Enter a brand name and select services from the left panel. Your proposal will appear here in real time.</p></div>`;
@@ -1058,7 +1425,7 @@ function renderPreview() {
           displayTitle = item.originalTitle ? `${item.originalTitle.replace(/{Ambassador}/g, ambassadorName)} (continued)` : '';
         } else {
           // Part > 1 and NOT at top of slide. Check if previous item was the same block.
-          if (group[i-1].originalTitle === item.originalTitle && group[i-1].svcName === item.svcName) {
+          if (group[i - 1].originalTitle === item.originalTitle && group[i - 1].svcName === item.svcName) {
             isContinuationSameSlide = true;
           }
         }
@@ -1137,6 +1504,7 @@ function renderPreview() {
       else if (annex.id === "B1") slides.push(annexSlideB1(annex.sections));
       else if (annex.id === "B2") slides.push(annexSlideB2(annex.sections));
       else if (annex.id === "C") slides.push(annexSlideC(annex.sections));
+      else slides.push(annexSlideCustom(annex));
     });
   }
 
@@ -1261,12 +1629,13 @@ function annexSlideA(sections) {
     return sName + sRows;
   }).join('');
 
+  const headingText = annexureHeadingOverrides['A'] || 'Brand Ambassador — Integrated Plan';
+
   const t = `
   <table class="at">
     <colgroup><col style="width:17px"><col style="width:112px"><col style="width:188px"><col style="width:78px"><col style="width:62px"><col style="width:143px"></colgroup>
     <tbody>
-    <tr class="mh"><td colspan="6">Brand Ambassador — Integrated Plan &nbsp;&nbsp;</td></tr>
-    <tr class="sh"><td colspan="6"> TVC · Digital · PR · Retail · Packaging · Social Media</td></tr>
+    <tr class="mh"><td colspan="6">${headingText} &nbsp;&nbsp;</td></tr>
     <tr class="sp"><td colspan="6"></td></tr>
     <tr class="ch"><td></td><td>Touchpoint</td><td>Deliverable Detail</td><td>Phase / Timing</td><td>Status</td><td>Notes</td></tr>
     ${rowsHTML}
@@ -1305,11 +1674,13 @@ function annexSlideB1(sections) {
     return sName + sRows;
   }).join('');
 
+  const headingText = annexureHeadingOverrides['B1'] || 'Creative ATL Scope of Work';
+
   const t = `
   <table class="at">
     <colgroup><col style="width:17px"><col style="width:130px"><col style="width:233px"><col style="width:110px"><col style="width:110px"></colgroup>
     <tbody>
-    <tr class="mh"><td colspan="5">Creative ATL Scope of Work &nbsp;|&nbsp; LED · FAN · COOLER</td></tr>
+    <tr class="mh"><td colspan="5">${headingText} &nbsp;</td></tr>
     <tr class="sp"><td colspan="5"></td></tr>
     <tr class="ch"><td></td><td>Category</td><td>Deliverable / Task</td><td>Quantity / Frequency</td><td>Exclusions / Notes</td></tr>
     ${rowsHTML}
@@ -1348,11 +1719,13 @@ function annexSlideB2(sections) {
     return sName + sRows;
   }).join('');
 
+  const headingText = annexureHeadingOverrides['B2'] || 'Creative ATL Scope of Work';
+
   const t = `
   <table class="at">
     <colgroup><col style="width:17px"><col style="width:130px"><col style="width:233px"><col style="width:110px"><col style="width:110px"></colgroup>
     <tbody>
-    <tr class="mh"><td colspan="5">Creative ATL Scope of Work (continued)</td></tr>
+    <tr class="mh"><td colspan="5">${headingText}</td></tr>
     <tr class="sp"><td colspan="5"></td></tr>
     <tr class="ch"><td></td><td>Category</td><td>Deliverable / Task</td><td>Quantity / Frequency</td><td>Exclusions / Notes</td></tr>
     ${rowsHTML}
@@ -1391,15 +1764,63 @@ function annexSlideC(sections) {
     return sName + sRows;
   }).join('');
 
+  const headingText = annexureHeadingOverrides['C'] || 'Digital Scope of Work | All Categories';
+
   const t = `
   <table class="at">
     <colgroup><col style="width:17px"><col style="width:110px"><col style="width:200px"><col style="width:100px"><col style="width:173px"></colgroup>
     <tbody>
-    <tr class="mh"><td colspan="5">Digital Scope of Work &nbsp;|&nbsp; All Categories</td></tr>
+    <tr class="mh"><td colspan="5">${headingText}</td></tr>
     <tr class="sp"><td colspan="5"></td></tr>
     <tr class="ch"><td></td><td>Category</td><td>Deliverable / Task</td><td>Quantity / Frequency</td><td>Exclusions / Notes</td></tr>
     ${rowsHTML}
     </tbody>
   </table>`;
   return annexSlideWrap('Annexure C', t);
+}
+
+function annexSlideCustom(annex) {
+  let counter = 1;
+  const filteredSections = (annex.sections || [])
+    .filter(sec => !disabledAnnexureSections.has(`${annex.id}_${sec.name}`))
+    .map(sec => {
+      const visibleRows = sec.rows.filter(row => !disabledAnnexureRows.has(`${annex.id}_${row.id}`));
+      return { ...sec, rows: visibleRows };
+    })
+    .filter(sec => sec.rows.length > 0);
+
+  const rowsHTML = filteredSections.map(sec => {
+    const sName = `<tr class="sc"><td colspan="6">${sec.name}</td></tr>`;
+    const sRows = sec.rows.map((row, ri) => {
+      const override = annexureOverrides[`${annex.id}_${row.id}`];
+      const taskOverride = annexureTaskOverrides[`${annex.id}_${row.id}`];
+      const detailOverride = annexureDetailOverrides[`${annex.id}_${row.id}`];
+      const notesOverride = annexureNotesOverrides[`${annex.id}_${row.id}`];
+      const displayId = counter++;
+      return `
+      <tr class="dr ${ri % 2 === 0 ? 'wh' : ''}">
+        <td class="nc">${displayId}</td>
+        <td>${taskOverride || row.task}</td>
+        <td>${detailOverride || row.detail || ''}</td>
+        <td>${override || row.timing || row.freq || ''}</td>
+        <td>To Do</td>
+        <td>${notesOverride || row.notes || ''}</td>
+      </tr>`;
+    }).join('');
+    return sName + sRows;
+  }).join('');
+
+  const headingText = annexureHeadingOverrides[annex.id] || annex.subtitle || annex.title || `Annexure ${annex.id}`;
+
+  const t = `
+  <table class="at">
+    <colgroup><col style="width:17px"><col style="width:112px"><col style="width:188px"><col style="width:78px"><col style="width:62px"><col style="width:143px"></colgroup>
+    <tbody>
+    <tr class="mh"><td colspan="6">${headingText} &nbsp;&nbsp;</td></tr>
+    <tr class="sp"><td colspan="6"></td></tr>
+    <tr class="ch"><td></td><td>Touchpoint</td><td>Deliverable Detail</td><td>Phase / Timing</td><td>Status</td><td>Notes</td></tr>
+    ${rowsHTML}
+    </tbody>
+  </table>`;
+  return annexSlideWrap(annex.title || `Annexure ${annex.id}`, t);
 }

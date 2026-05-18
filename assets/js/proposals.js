@@ -12,6 +12,18 @@ function captureSnapshot() {
     });
   });
 
+  // Extract custom services structure
+  const customServicesSnap = {};
+  Object.keys(SERVICES).forEach(id => {
+    if (id.startsWith('custom_')) {
+      customServicesSnap[id] = {
+        section: SERVICES[id].section,
+        name: SERVICES[id].name,
+        blocks: SERVICES[id].blocks
+      };
+    }
+  });
+
   return {
     brandName:      document.getElementById('brandInput')?.value ?? '',
     ambassador:     document.getElementById('ambassadorInput')?.value ?? '',
@@ -28,6 +40,23 @@ function captureSnapshot() {
     annexureDetailOverrides,
     annexureNotesOverrides,
     annexureCatOverrides,
+    annexureHeadingOverrides,
+    customAnnexureIds: Array.from(CUSTOM_ANNEXURE_IDS),
+    customAnnexures: (() => {
+      const snap = {};
+      CUSTOM_ANNEXURE_IDS.forEach(id => {
+        if (ANNEXURE_DATA[id]) {
+          snap[id] = {
+            title: ANNEXURE_DATA[id].title,
+            subtitle: ANNEXURE_DATA[id].subtitle,
+            sections: ANNEXURE_DATA[id].sections
+          };
+        }
+      });
+      return snap;
+    })(),
+    customServices: customServicesSnap,
+    serviceOrder: SERVICE_ORDER,
     // Custom items / blocks users may have added
     serviceBlocks: (() => {
       const out = {};
@@ -48,6 +77,20 @@ function applySnapshot(snap) {
   if (snap.ambassador   !== undefined) document.getElementById('ambassadorInput').value = snap.ambassador;
   if (snap.cost         !== undefined) document.getElementById('costInput').value        = snap.cost;
   if (snap.payment      !== undefined) document.getElementById('paymentInput').value     = snap.payment;
+
+  // Restore custom services first
+  if (snap.customServices) {
+    Object.keys(snap.customServices).forEach(id => {
+      SERVICES[id] = snap.customServices[id];
+    });
+  }
+
+  // Restore service order
+  if (snap.serviceOrder) {
+    Object.keys(snap.serviceOrder).forEach(sec => {
+      SERVICE_ORDER[sec] = snap.serviceOrder[sec];
+    });
+  }
 
   // Restore custom service blocks first
   if (snap.serviceBlocks) {
@@ -76,6 +119,20 @@ function applySnapshot(snap) {
   Object.assign(annexureDetailOverrides, snap.annexureDetailOverrides || {});
   Object.assign(annexureNotesOverrides,  snap.annexureNotesOverrides  || {});
   Object.assign(annexureCatOverrides,    snap.annexureCatOverrides    || {});
+  Object.assign(annexureHeadingOverrides,  snap.annexureHeadingOverrides  || {});
+
+  // Restore custom annexures
+  if (snap.customAnnexures) {
+    Object.keys(snap.customAnnexures).forEach(id => {
+      ANNEXURE_DATA[id] = snap.customAnnexures[id];
+    });
+  }
+
+  // Restore custom annexure IDs
+  if (snap.customAnnexureIds) {
+    CUSTOM_ANNEXURE_IDS.clear();
+    snap.customAnnexureIds.forEach(id => CUSTOM_ANNEXURE_IDS.add(id));
+  }
 
   initPanel();
   renderPreview();
