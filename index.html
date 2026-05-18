@@ -3,105 +3,190 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CogCulture | Proposal Generator</title>
-  <meta name="description" content="Generate professional proposals with real-time preview and PDF export.">
-  
-  <!-- Favicon -->
+  <title>CogCulture | Dashboard</title>
+  <meta name="description" content="Manage and create your CogCulture proposals.">
   <link rel="icon" href="assets/img/logo.png" type="image/png">
-
-  <!-- Libraries -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-
-  <!-- Styles -->
-  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Supabase CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <link rel="stylesheet" href="assets/css/dashboard.css">
 </head>
 <body>
 
-  <!-- LOADING OVERLAY -->
-  <div class="loading-overlay" id="loadingOverlay">
-    <div class="loading-box">
-      <div class="loading-spinner"></div>
-      <div class="loading-text">Generating PDF</div>
-      <div class="loading-sub" id="loadingProgress">Preparing slides…</div>
+<!-- ═══════════════════════ AUTH MODAL ═══════════════════════ -->
+<div class="modal-backdrop" id="authModal">
+  <div class="auth-modal">
+    <button class="auth-close" onclick="closeAuthModal()">✕</button>
+    <div class="auth-logo">CogCulture</div>
+    <p class="auth-tagline">Proposal Generator — Sign in to continue</p>
+
+    <div class="auth-tabs">
+      <button class="auth-tab active" data-tab="login"  onclick="showAuthTab('login')">Sign In</button>
+      <button class="auth-tab"        data-tab="signup" onclick="showAuthTab('signup')">Sign Up</button>
+    </div>
+
+    <div id="authError" class="auth-error" style="display:none"></div>
+
+    <!-- LOGIN -->
+    <form id="loginForm" style="display:flex;flex-direction:column;gap:14px" onsubmit="handleLogin(event)">
+      <div class="auth-field">
+        <label>Email</label>
+        <input id="loginEmail" type="email" placeholder="you@company.com" required autocomplete="email">
+      </div>
+      <div class="auth-field">
+        <label>Password</label>
+        <input id="loginPassword" type="password" placeholder="••••••••" required autocomplete="current-password">
+      </div>
+      <button id="loginSubmitBtn" class="auth-submit" type="submit">Sign In</button>
+    </form>
+
+    <!-- SIGNUP -->
+    <form id="signupForm" style="display:none;flex-direction:column;gap:14px" onsubmit="handleSignup(event)">
+      <div class="auth-field">
+        <label>Email</label>
+        <input id="signupEmail" type="email" placeholder="you@company.com" required autocomplete="email">
+      </div>
+      <div class="auth-field">
+        <label>Password</label>
+        <input id="signupPassword" type="password" placeholder="Min. 8 characters" required autocomplete="new-password">
+      </div>
+      <div class="auth-field">
+        <label>Confirm Password</label>
+        <input id="signupConfirm" type="password" placeholder="Repeat password" required autocomplete="new-password">
+      </div>
+      <button id="signupSubmitBtn" class="auth-submit" type="submit">Create Account</button>
+    </form>
+
+    <!-- EMAIL VERIFICATION SENT -->
+    <div id="verificationSentView" style="display:none;flex-direction:column;align-items:center;text-align:center;gap:16px;margin-top:10px;">
+      <div class="verification-icon-wrapper" style="width: 64px; height: 64px; border-radius: 50%; background: rgba(200, 55, 43, 0.12); display: flex; align-items: center; justify-content: center; border: 1px solid rgba(200, 55, 43, 0.25);">
+        <span style="font-size: 32px;">✉️</span>
+      </div>
+      <h3 style="font-size: 18px; font-weight: 600; color: var(--white); margin: 0;">Verify Your Email</h3>
+      <p style="font-size: 13px; color: var(--muted); line-height: 1.5; margin: 0; padding: 0 10px;">
+        We have sent a security verification link to <strong id="verificationEmailDisplay" style="color: var(--white);"></strong>.
+      </p>
+      <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 12px; font-size: 12px; color: var(--muted); line-height: 1.4; text-align: left; width: 100%;">
+        💡 <strong>Next steps:</strong>
+        <ol style="margin-left: 18px; margin-top: 6px; display: flex; flex-direction: column; gap: 4px;">
+          <li>Open your email inbox.</li>
+          <li>Click the verification link.</li>
+          <li>Return here and sign in.</li>
+        </ol>
+      </div>
+      <div style="display: flex; gap: 10px; width: 100%; margin-top: 10px;">
+        <a id="btnGmail" href="https://mail.google.com" target="_blank" class="auth-submit" style="flex: 1; text-align: center; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 10px; font-size: 13px; margin: 0;">
+          Open Gmail
+        </a>
+        <button class="btn btn-ghost" onclick="showAuthTab('login')" style="flex: 1; padding: 10px; font-size: 13px; border-radius: 8px;">
+          Back to Login
+        </button>
+      </div>
     </div>
   </div>
+</div>
 
-  <!-- TOP BAR -->
-  <header class="topbar">
-    <div class="topbar-left">
-      <span class="topbar-brand">CogCulture</span>
-      <span class="topbar-divider"></span>
-      <span class="topbar-subtitle">Proposal Generator</span>
+<!-- ═══════════════════════ LAYOUT ═══════════════════════════ -->
+<div class="app-layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <span class="brand-name">CogCulture</span>
+      <span class="brand-dot"></span>
     </div>
-    <div class="topbar-actions">
-      <button class="btn btn-ghost" onclick="clearAll()">Clear</button>
-      <button class="btn btn-primary" id="btn-pdf" onclick="generatePDF()">↓ Export PDF</button>
+
+    <nav class="sidebar-nav">
+      <a href="index.html" class="nav-item active">
+        <span class="nav-icon">⊞</span> Proposals
+      </a>
+      <a href="#" class="nav-item disabled" style="opacity: 0.45; cursor: not-allowed;" onclick="return false">
+        <span class="nav-icon">📁</span> Templates <span style="font-size: 8px; background: rgba(255,255,255,0.08); padding: 1px 4px; border-radius: 4px; margin-left: auto;">🔒</span>
+      </a>
+      <a href="#" class="nav-item disabled" style="opacity: 0.45; cursor: not-allowed;" onclick="return false">
+        <span class="nav-icon">📊</span> Analytics <span style="font-size: 8px; background: rgba(255,255,255,0.08); padding: 1px 4px; border-radius: 4px; margin-left: auto;">🔒</span>
+      </a>
+    </nav>
+
+    <!-- Auth button card pushed to bottom of sidebar -->
+    <div class="sidebar-user-section" style="margin-top: auto; padding: 0 12px;">
+      <button class="auth-sidebar-btn" id="authSidebarBtn" onclick="onAuthBtnClick()" style="width: 100%; margin: 0 0 12px; display: flex; align-items: center;">
+        <span class="auth-avatar" id="authAvatar">👤</span>
+        <span class="auth-sidebar-label" id="authSidebarLabel" style="margin-left: 10px;">Login</span>
+      </button>
+      
+      <button class="logout-btn" id="logoutBtn" onclick="handleLogout()" style="display:none; margin-bottom: 8px;">
+        Sign Out
+      </button>
     </div>
-  </header>
+  </aside>
 
-  <!-- MAIN -->
-  <main class="main">
-    <!-- LEFT PANEL -->
-    <aside class="left-panel">
-      <div class="panel-header">
-        <h1 class="panel-header-title">Proposal Details</h1>
+  <!-- MAIN CONTENT -->
+  <main class="dashboard-main">
 
-        <div class="field-group">
-          <label class="field-label" for="brandInput">Brand Name</label>
-          <input class="field-input" id="brandInput" type="text" placeholder="e.g. Apple" oninput="renderPreview()">
-        </div>
-
-        <div class="field-group">
-          <label class="field-label" for="ambassadorInput">BA Integration</label>
-          <input class="field-input" id="ambassadorInput" type="text" placeholder="e.g. Katrina Kaif" oninput="renderPreview()">
-        </div>
-
-        <div class="field-row">
-          <div class="field-group" style="flex:1">
-            <label class="field-label" for="costInput">Retainer Cost</label>
-            <input class="field-input" id="costInput" type="text" placeholder="e.g. 20,00,000" oninput="renderPreview()">
-          </div>
-          <div class="field-group" style="flex:1">
-            <label class="field-label" for="paymentInput">Payment Mode</label>
-            <input class="field-input" id="paymentInput" type="text" placeholder="Monthly Advance" oninput="renderPreview()">
-          </div>
-        </div>
+    <!-- TOP BAR -->
+    <header class="dash-topbar">
+      <div>
+        <h1 class="dash-title">My Proposals</h1>
+        <p class="dash-sub">Pick up where you left off, or start fresh.</p>
       </div>
+      <button class="btn-new" onclick="guardAndCreateNew()">
+        <span>＋</span> New Proposal
+      </button>
+    </header>
 
-      <div class="panel-body">
-        <div class="services-toolbar">
-          <span class="services-label">Services</span>
-          <div class="toolbar-right">
-            <span class="count-badge" id="countBadge">0</span>
-            <button class="select-all-btn" onclick="toggleAll()" id="selectAllBtn">Select all</button>
-          </div>
-        </div>
+    <!-- LOADING STATE -->
+    <div id="dashLoading" class="dash-loading">
+      <div class="spinner"></div>
+      <span>Loading proposals…</span>
+    </div>
 
-        <div id="dynamicServices"></div>
-      </div>
-    </aside>
+    <!-- EMPTY STATE -->
+    <div id="dashEmpty" class="dash-empty" style="display:none">
+      <div class="empty-icon">📋</div>
+      <h2>No proposals yet</h2>
+      <p>Create your first proposal to get started.</p>
+      <button class="btn-new" onclick="guardAndCreateNew()">＋ New Proposal</button>
+    </div>
 
-    <!-- RIGHT PANEL -->
-    <section class="right-panel">
-      <div class="preview-header">
-        <h2 class="preview-title">Live Preview</h2>
-        <div class="preview-meta">
-          <span class="page-count" id="pageCount">0 slides</span>
+    <!-- PROPOSALS GRID -->
+    <div id="dashContent" style="display:none">
+
+      <!-- LATEST PROPOSAL -->
+      <section class="section-latest" id="latestSection" style="display:none">
+        <div class="section-header">
+          <span class="section-label">Continue where you left off</span>
         </div>
-      </div>
-      <div class="preview-scroll" id="previewScroll">
-        <div class="empty-state">
-          <div class="empty-state-icon">📋</div>
-          <h3>Start building your proposal</h3>
-          <p>Enter a brand name and select services from the left panel. Your proposal will appear here in real time.</p>
+        <div id="latestCard"></div>
+      </section>
+
+      <!-- ALL PROPOSALS -->
+      <section class="section-all" id="allSection" style="display:none">
+        <div class="section-header">
+          <span class="section-label">All Proposals</span>
         </div>
-      </div>
-    </section>
+        <div class="proposals-grid" id="proposalsGrid"></div>
+      </section>
+
+    </div>
   </main>
+</div>
 
-  <!-- Scripts -->
-  <script src="assets/js/services.js"></script>
-  <script src="assets/js/main.js"></script>
+<!-- ═══════════════ DELETE CONFIRM MODAL ══════════════════════ -->
+<div class="modal-backdrop" id="deleteModal" style="display:none">
+  <div class="confirm-modal">
+    <h3>Delete Proposal?</h3>
+    <p>This will permanently delete the proposal and all its version history. This cannot be undone.</p>
+    <div class="confirm-actions">
+      <button class="btn-cancel"  onclick="closeDeleteModal()">Cancel</button>
+      <button class="btn-danger"  id="confirmDeleteBtn">Delete</button>
+    </div>
+  </div>
+</div>
+
+<script src="assets/js/supabase-config.js"></script>
+<script src="assets/js/auth.js"></script>
+<script src="assets/js/dashboard.js"></script>
 </body>
 </html>

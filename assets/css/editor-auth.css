@@ -1,0 +1,170 @@
+/* ── EDITOR-AUTH.CSS ────────────────────────────────────────
+   Extra styles for the auth modal + history panel
+   layered on top of style.css in the proposal editor
+──────────────────────────────────────────────────────────── */
+
+/* Auth modal (same as dashboard.css, copied for standalone use) */
+.modal-backdrop {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.72);
+  backdrop-filter: blur(6px);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+}
+.modal-backdrop.open { display: flex; }
+
+.auth-modal {
+  background: #252220;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 18px;
+  padding: 40px 36px 36px;
+  width: 380px;
+  position: relative;
+  box-shadow: 0 32px 80px rgba(0,0,0,0.6);
+  animation: authSlide 0.28s ease;
+}
+@keyframes authSlide {
+  from { opacity:0; transform: translateY(20px); }
+  to   { opacity:1; transform: translateY(0); }
+}
+.auth-close {
+  position: absolute; top:16px; right:16px;
+  background:none; border:none; color:#8a857c;
+  font-size:16px; cursor:pointer;
+}
+.auth-close:hover { color:#fff; }
+.auth-logo { font-size:22px; font-weight:700; letter-spacing:-0.5px; margin-bottom:4px; }
+.auth-tagline { font-size:12px; color:#8a857c; margin-bottom:24px; }
+.auth-tabs { display:flex; border-bottom:1px solid rgba(255,255,255,0.08); margin-bottom:24px; }
+.auth-tab {
+  flex:1; background:none; border:none;
+  padding:10px; font-size:13px; color:#8a857c;
+  cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px;
+  font-family:inherit; transition:all 0.15s;
+}
+.auth-tab.active { color:#fff; border-bottom-color:#c8372b; }
+.auth-error {
+  background:rgba(200,55,43,0.12); border:1px solid rgba(200,55,43,0.3);
+  border-radius:8px; padding:10px 14px; font-size:12.5px;
+  color:#f09090; margin-bottom:14px;
+}
+.auth-field { display:flex; flex-direction:column; gap:6px; }
+.auth-field label { font-size:11px; font-weight:500; color:#8a857c; letter-spacing:0.08em; text-transform:uppercase; }
+.auth-field input {
+  background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1);
+  border-radius:8px; padding:10px 14px; font-size:14px;
+  color:#fff; outline:none; font-family:inherit; transition:all 0.15s;
+}
+.auth-field input:focus { border-color:rgba(200,55,43,0.5); box-shadow:0 0 0 3px rgba(200,55,43,0.12); }
+.auth-field input::placeholder { color:rgba(255,255,255,0.2); }
+.auth-submit {
+  margin-top:6px; background:#c8372b; color:#fff; border:none;
+  border-radius:8px; padding:12px; font-size:14px; font-weight:600;
+  cursor:pointer; transition:all 0.18s; font-family:inherit;
+  box-shadow:0 4px 16px rgba(200,55,43,0.18);
+}
+.auth-submit:hover { background:#a82e23; transform:translateY(-1px); }
+.auth-submit:disabled { opacity:0.6; cursor:not-allowed; transform:none; }
+
+/* Auth button in topbar */
+.auth-sidebar-btn {
+  display:flex; align-items:center; gap:8px;
+  background:rgba(255,255,255,0.04);
+  border:1px solid rgba(255,255,255,0.1);
+  border-radius:8px; cursor:pointer;
+  color:#c9c3b8; font-family:inherit; transition:all 0.15s;
+}
+.auth-sidebar-btn:hover { background:rgba(255,255,255,0.08); color:#fff; }
+.auth-sidebar-btn.logged-in { border-color:rgba(200,55,43,0.3); }
+.auth-avatar {
+  width:28px; height:28px; border-radius:50%;
+  background:#3d3a34; display:flex; align-items:center;
+  justify-content:center; font-size:11px; font-weight:700;
+  color:#fff; border:1px solid rgba(255,255,255,0.1); flex-shrink:0;
+}
+
+/* Save indicator */
+.save-indicator {
+  font-size:12px; color:#6bcb77;
+  opacity:0; transition:opacity 0.4s;
+  white-space:nowrap;
+}
+.save-indicator.visible { opacity:1; }
+
+/* Topbar back arrow */
+.topbar-back {
+  color:#8a857c; font-size:18px; text-decoration:none;
+  margin-right:-4px; padding:4px 8px; border-radius:6px;
+  transition:all 0.15s;
+}
+.topbar-back:hover { color:#fff; background:rgba(255,255,255,0.07); }
+
+/* ── VERSION HISTORY DRAWER ── */
+.history-backdrop {
+  position:fixed; inset:0;
+  z-index:900; pointer-events:none;
+}
+.history-backdrop.open { pointer-events:auto; }
+
+.history-drawer {
+  position:fixed; top:0; right:-420px; bottom:0;
+  width:400px;
+  background:#1c1a17;
+  border-left:1px solid rgba(255,255,255,0.08);
+  display:flex; flex-direction:column;
+  box-shadow:-12px 0 40px rgba(0,0,0,0.4);
+  transition:right 0.3s cubic-bezier(0.4,0,0.2,1);
+  z-index:901;
+}
+.history-backdrop.open .history-drawer { right:0; }
+
+.history-header {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:20px 24px;
+  border-bottom:1px solid rgba(255,255,255,0.08);
+  flex-shrink:0;
+}
+.history-header h3 { font-size:15px; font-weight:600; }
+.history-header button {
+  background:none; border:none; color:#8a857c;
+  font-size:16px; cursor:pointer;
+}
+.history-header button:hover { color:#fff; }
+
+.history-list {
+  flex:1; overflow-y:auto; padding:16px;
+}
+.history-list::-webkit-scrollbar { width:4px; }
+.history-list::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.1); border-radius:4px; }
+
+.history-loading {
+  color:#8a857c; font-size:13px; text-align:center;
+  padding:40px 0;
+}
+
+.history-item {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:14px 16px;
+  border-radius:10px;
+  border:1px solid rgba(255,255,255,0.06);
+  margin-bottom:8px;
+  background:rgba(255,255,255,0.03);
+  transition:all 0.15s;
+}
+.history-item:hover { background:rgba(255,255,255,0.06); border-color:rgba(255,255,255,0.12); }
+
+.history-item-info { display:flex; flex-direction:column; gap:4px; }
+.history-label { font-size:13px; font-weight:500; color:#e2ddd6; }
+.history-time  { font-size:11px; color:#8a857c; }
+.history-ver   { font-size:10px; color:rgba(255,255,255,0.2); }
+
+.history-restore-btn {
+  background:rgba(200,55,43,0.12); border:1px solid rgba(200,55,43,0.2);
+  border-radius:7px; padding:7px 14px;
+  color:#f09090; font-size:12px; font-weight:600;
+  cursor:pointer; transition:all 0.15s; white-space:nowrap;
+  font-family:inherit;
+}
+.history-restore-btn:hover { background:#c8372b; color:#fff; border-color:#c8372b; }

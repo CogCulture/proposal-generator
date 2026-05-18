@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CogCulture | Proposal Generator</title>
+  <meta name="description" content="Generate professional proposals with real-time preview and PDF export.">
+  <link rel="icon" href="assets/img/logo.png" type="image/png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Libraries -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="assets/css/editor-auth.css">
+</head>
+<body>
+
+  <!-- ═══ AUTH MODAL (same as dashboard) ════════════════════ -->
+  <div class="modal-backdrop" id="authModal">
+    <div class="auth-modal">
+      <button class="auth-close" onclick="closeAuthModal()">✕</button>
+      <div class="auth-logo">CogCulture</div>
+      <p class="auth-tagline">Sign in to save and continue your proposals</p>
+      <div class="auth-tabs">
+        <button class="auth-tab active" data-tab="login"  onclick="showAuthTab('login')">Sign In</button>
+        <button class="auth-tab"        data-tab="signup" onclick="showAuthTab('signup')">Sign Up</button>
+      </div>
+      <div id="authError" class="auth-error" style="display:none"></div>
+      <form id="loginForm" style="display:flex;flex-direction:column;gap:14px" onsubmit="handleLogin(event)">
+        <div class="auth-field"><label>Email</label><input id="loginEmail" type="email" placeholder="you@company.com" required></div>
+        <div class="auth-field"><label>Password</label><input id="loginPassword" type="password" placeholder="••••••••" required></div>
+        <button id="loginSubmitBtn" class="auth-submit" type="submit">Sign In</button>
+      </form>
+      <form id="signupForm" style="display:none;flex-direction:column;gap:14px" onsubmit="handleSignup(event)">
+        <div class="auth-field"><label>Email</label><input id="signupEmail" type="email" placeholder="you@company.com" required></div>
+        <div class="auth-field"><label>Password</label><input id="signupPassword" type="password" placeholder="Min. 8 characters" required></div>
+        <div class="auth-field"><label>Confirm Password</label><input id="signupConfirm" type="password" placeholder="Repeat password" required></div>
+        <button id="signupSubmitBtn" class="auth-submit" type="submit">Create Account</button>
+      </form>
+
+      <!-- EMAIL VERIFICATION SENT -->
+      <div id="verificationSentView" style="display:none;flex-direction:column;align-items:center;text-align:center;gap:16px;margin-top:10px;">
+        <div class="verification-icon-wrapper" style="width: 64px; height: 64px; border-radius: 50%; background: rgba(200, 55, 43, 0.12); display: flex; align-items: center; justify-content: center; border: 1px solid rgba(200, 55, 43, 0.25);">
+          <span style="font-size: 32px;">✉️</span>
+        </div>
+        <h3 style="font-size: 18px; font-weight: 600; color: var(--white); margin: 0;">Verify Your Email</h3>
+        <p style="font-size: 13px; color: var(--muted); line-height: 1.5; margin: 0; padding: 0 10px;">
+          We have sent a security verification link to <strong id="verificationEmailDisplay" style="color: var(--white);"></strong>.
+        </p>
+        <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 12px; font-size: 12px; color: var(--muted); line-height: 1.4; text-align: left; width: 100%;">
+          💡 <strong>Next steps:</strong>
+          <ol style="margin-left: 18px; margin-top: 6px; display: flex; flex-direction: column; gap: 4px;">
+            <li>Open your email inbox.</li>
+            <li>Click the verification link.</li>
+            <li>Return here and sign in.</li>
+          </ol>
+        </div>
+        <div style="display: flex; gap: 10px; width: 100%; margin-top: 10px;">
+          <a id="btnGmail" href="https://mail.google.com" target="_blank" class="auth-submit" style="flex: 1; text-align: center; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 10px; font-size: 13px; margin: 0;">
+            Open Gmail
+          </a>
+          <button class="btn btn-ghost" onclick="showAuthTab('login')" style="flex: 1; padding: 10px; font-size: 13px; border-radius: 8px;">
+            Back to Login
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ VERSION HISTORY PANEL ══════════════════════════════ -->
+  <div class="history-backdrop" id="historyPanel">
+    <div class="history-drawer">
+      <div class="history-header">
+        <h3>Version History</h3>
+        <button onclick="closeHistoryPanel()">✕</button>
+      </div>
+      <div class="history-list" id="historyList">
+        <div class="history-loading">Loading…</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ LOADING OVERLAY ════════════════════════════════════ -->
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-box">
+      <div class="loading-spinner"></div>
+      <div class="loading-text">Generating PDF</div>
+      <div class="loading-sub" id="loadingProgress">Preparing slides…</div>
+    </div>
+  </div>
+
+  <!-- ═══ TOP BAR ════════════════════════════════════════════ -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <a href="index.html" class="topbar-back" title="Back to dashboard">←</a>
+      <span class="topbar-brand">CogCulture</span>
+      <span class="topbar-divider"></span>
+      <span class="topbar-subtitle">Proposal Generator</span>
+    </div>
+    <div class="topbar-actions">
+      <!-- Auth / user -->
+      <button class="auth-sidebar-btn topbar-auth" id="authSidebarBtn" onclick="onEditorAuthClick()" style="margin:0;padding:6px 12px;border-radius:8px;font-size:12px;">
+        <span class="auth-avatar" id="authAvatar" style="width:22px;height:22px;font-size:10px;">👤</span>
+        <span id="authSidebarLabel">Login</span>
+      </button>
+      <!-- Save indicator -->
+      <span class="save-indicator" id="saveIndicator"></span>
+      <!-- History -->
+      <button class="btn btn-ghost" id="historyBtn" onclick="openHistoryPanel()" style="display:none">History</button>
+      <!-- Manual save -->
+      <button class="btn btn-ghost" id="saveBtn" onclick="saveVersion('Manual save')" style="display:none">↑ Save</button>
+      <!-- Clear -->
+      <button class="btn btn-ghost" onclick="clearAll()">Clear</button>
+      <!-- Export PDF -->
+      <button class="btn btn-primary" id="btn-pdf" onclick="exportGuard()">↓ Export PDF</button>
+    </div>
+  </header>
+
+  <!-- ═══ MAIN ════════════════════════════════════════════════ -->
+  <main class="main">
+    <aside class="left-panel">
+      <div class="panel-header">
+        <h1 class="panel-header-title">Proposal Details</h1>
+        <div class="field-group">
+          <label class="field-label" for="brandInput">Brand Name</label>
+          <input class="field-input" id="brandInput" type="text" placeholder="e.g. Apple" oninput="renderPreview(); scheduleAutoSave()">
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="ambassadorInput">BA Integration</label>
+          <input class="field-input" id="ambassadorInput" type="text" placeholder="e.g. Katrina Kaif" oninput="renderPreview(); scheduleAutoSave()">
+        </div>
+        <div class="field-row">
+          <div class="field-group" style="flex:1">
+            <label class="field-label" for="costInput">Retainer Cost</label>
+            <input class="field-input" id="costInput" type="text" placeholder="e.g. 20,00,000" oninput="renderPreview(); scheduleAutoSave()">
+          </div>
+          <div class="field-group" style="flex:1">
+            <label class="field-label" for="paymentInput">Payment Mode</label>
+            <input class="field-input" id="paymentInput" type="text" placeholder="Monthly Advance" oninput="renderPreview(); scheduleAutoSave()">
+          </div>
+        </div>
+      </div>
+
+      <div class="panel-body">
+        <div class="services-toolbar">
+          <span class="services-label">Services</span>
+          <div class="toolbar-right">
+            <span class="count-badge" id="countBadge">0</span>
+            <button class="select-all-btn" onclick="toggleAll()" id="selectAllBtn">Select all</button>
+          </div>
+        </div>
+        <div id="dynamicServices"></div>
+      </div>
+    </aside>
+
+    <section class="right-panel">
+      <div class="preview-header">
+        <h2 class="preview-title">Live Preview</h2>
+        <div class="preview-meta">
+          <span class="page-count" id="pageCount">0 slides</span>
+        </div>
+      </div>
+      <div class="preview-scroll" id="previewScroll">
+        <div class="empty-state">
+          <div class="empty-state-icon">📋</div>
+          <h3>Start building your proposal</h3>
+          <p>Enter a brand name and select services from the left panel.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Scripts (order matters) -->
+  <script src="assets/js/supabase-config.js"></script>
+  <script src="assets/js/auth.js"></script>
+  <script src="assets/js/services.js"></script>
+  <script src="assets/js/main.js"></script>
+  <script src="assets/js/proposals.js"></script>
+  <script src="assets/js/editor-boot.js"></script>
+</body>
+</html>

@@ -5,6 +5,7 @@ const annexureDetailOverrides = {};
 const annexureNotesOverrides = {};
 const annexureCatOverrides = {};
 const expandedBlocks = {};
+const expandedServices = {};
 const expandedAnnexureSections = {};
 let annexureEnabled = true;
 const disabledAnnexures = new Set();
@@ -417,12 +418,12 @@ function initPanel() {
           <div class="service-name">${svc.name}</div>
           <div class="service-sub">${(svc.blocks || []).map(b => b.title || '').filter(t => t).join(', ') || 'Service Details'}</div>
         </div>
-        <button class="svc-expand-btn" onclick="toggleExpand(event,'${svcId}')"><span class="svc-expand-arrow" id="svc-arrow-${svcId}">▼</span></button>
+        <button class="svc-expand-btn" onclick="toggleExpand(event,'${svcId}')"><span class="svc-expand-arrow${expandedServices[svcId] ? ' open' : ''}" id="svc-arrow-${svcId}">▼</span></button>
       `;
       sectionDiv.appendChild(svcRow);
 
       const blocksCont = document.createElement('div');
-      blocksCont.className = 'blocks-container';
+      blocksCont.className = 'blocks-container' + (expandedServices[svcId] ? ' open' : '');
       blocksCont.id = 'blocks-' + svcId;
 
       if (svc.dynamic) {
@@ -434,11 +435,12 @@ function initPanel() {
               <svg class="block-checkbox-mark" viewBox="0 0 10 7" fill="none"><polyline points="1,3.5 4,6.5 9,1" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </div>
             <span class="block-name">${block.title || (svc.name + ' Sub-Block ' + (bi + 1))}</span>
+            <button class="block-delete-btn" onclick="deleteBlock(event, '${svcId}', ${bi})" title="Delete Sub-heading">✕</button>
             <button class="block-expand-btn" onclick="toggleBlockExpand(event,'${svcId}',${bi})">
-              <span class="block-expand-arrow" id="block-arrow-${svcId}-${bi}">▼</span>
+              <span class="block-expand-arrow${expandedBlocks[`${svcId}-${bi}`] ? ' open' : ''}" id="block-arrow-${svcId}-${bi}">▼</span>
             </button>
           </div>
-          <div class="items-container" id="items-${svcId}-${bi}">
+          <div class="items-container${expandedBlocks[`${svcId}-${bi}`] ? ' open' : ''}" id="items-${svcId}-${bi}">
             ${(block.items || []).map((item, ii) => `
               <div class="item-row" id="item-row-${svcId}-${bi}-${ii}" 
                    draggable="true"
@@ -506,6 +508,52 @@ function handleBlockAdd(e, svcId) {
   }
 }
 
+function deleteBlock(e, svcId, bi) {
+  e.stopPropagation();
+  if (!confirm(`Are you sure you want to delete the sub-heading "${SERVICES[svcId].blocks[bi].title}"?`)) return;
+  
+  // Remove block from SERVICES
+  SERVICES[svcId].blocks.splice(bi, 1);
+  
+  // Clean up selectedItems state
+  if (selectedItems[svcId]) {
+    delete selectedItems[svcId][bi];
+    // Re-index remaining blocks in selectedItems
+    const newSvcSelected = {};
+    Object.keys(selectedItems[svcId]).forEach(oldBi => {
+      const oldIdx = parseInt(oldBi);
+      if (oldIdx > bi) {
+        newSvcSelected[oldIdx - 1] = selectedItems[svcId][oldBi];
+      } else if (oldIdx < bi) {
+        newSvcSelected[oldIdx] = selectedItems[svcId][oldBi];
+      }
+    });
+    selectedItems[svcId] = newSvcSelected;
+  }
+  
+  // Clean up expandedBlocks state
+  const newExpandedBlocks = {};
+  Object.keys(expandedBlocks).forEach(key => {
+    const parts = key.split('-');
+    if (parts[0] === svcId) {
+      const idx = parseInt(parts[1]);
+      if (idx > bi) {
+        newExpandedBlocks[`${svcId}-${idx - 1}`] = expandedBlocks[key];
+      } else if (idx < bi) {
+        newExpandedBlocks[key] = expandedBlocks[key];
+      }
+    } else {
+      newExpandedBlocks[key] = expandedBlocks[key];
+    }
+  });
+  // Replace expandedBlocks contents
+  for (let key in expandedBlocks) delete expandedBlocks[key];
+  Object.assign(expandedBlocks, newExpandedBlocks);
+
+  initPanel();
+  renderPreview();
+}
+
 function toggleExpand(e, svcId) {
   e.stopPropagation();
   const el = document.getElementById('blocks-' + svcId);
@@ -513,6 +561,7 @@ function toggleExpand(e, svcId) {
   if (!el || !arrow) return;
   const open = el.classList.toggle('open');
   arrow.classList.toggle('open', open);
+  expandedServices[svcId] = open; // Caches state
 }
 
 function toggleBlockExpand(e, svcId, bi) {
@@ -522,9 +571,8 @@ function toggleBlockExpand(e, svcId, bi) {
   if (!el || !arrow) return;
   const open = el.classList.toggle('open');
   arrow.classList.toggle('open', open);
-
   const key = `${svcId}-${bi}`;
-  expandedBlocks[key] = open;
+  expandedBlocks[key] = open; // Caches state
 }
 
 function toggleService(e, svcId) {
@@ -879,7 +927,7 @@ function getActiveBlocksForSlide(svcId) {
   svc.blocks.forEach((block, bi) => {
     const itemSet = selectedItems[svcId]?.[bi];
     const activeItems = (block.items || []).filter((_, ii) => itemSet?.has(ii));
-    const isSelected = (activeItems.length > 0) || (block.items.length === 0 && itemSet);
+    const isSelected = (activeItems.length > 0) || (block.items.length === 0 && itemSet && itemSet.has("__selected__"));
     if (isSelected) result.push({ ...block, items: activeItems });
   });
   return result;
@@ -920,6 +968,34 @@ function renderPreview() {
       blocks.forEach(block => allContentItems.push({ svcName: svc.name, block }));
     });
 
+    const processedContentItems = [];
+    allContentItems.forEach(item => {
+      const block = item.block;
+      const CHUNK_SIZE = 15; // smaller chunks for safety, they will merge if on same page
+      if (block.items && block.items.length > CHUNK_SIZE) {
+        const itemsCopy = [...block.items];
+        let part = 1;
+        while (itemsCopy.length > 0) {
+          const chunk = itemsCopy.splice(0, CHUNK_SIZE);
+          processedContentItems.push({
+            svcName: item.svcName,
+            part: part,
+            originalTitle: block.title,
+            block: {
+              ...block,
+              title: block.title, // keep original title for reference
+              para: part === 1 ? block.para : '',
+              boldItems: part === 1 ? block.boldItems : [],
+              items: chunk
+            }
+          });
+          part++;
+        }
+      } else {
+        processedContentItems.push({ ...item, part: 1, originalTitle: item.block.title });
+      }
+    });
+
     let slideGroups = [];
     let currentGroup = [];
     let currentScore = 0;
@@ -928,7 +1004,7 @@ function renderPreview() {
     const ITEM_SCORE = 1.1, BLOCK_TITLE_SCORE = 2.5, SVC_TITLE_SCORE = 3.5, DIVIDER_SCORE = 2;
     const FIRST_PAGE_LIMIT = 24, NORMAL_PAGE_LIMIT = 34;
 
-    allContentItems.forEach(item => {
+    processedContentItems.forEach(item => {
       let itemScore = 0;
       if (item.svcName !== lastSvcName) {
         itemScore += SVC_TITLE_SCORE;
@@ -969,7 +1045,24 @@ function renderPreview() {
         }
         slidePrevSvc = item.svcName;
         const block = item.block;
-        const displayTitle = block.title ? block.title.replace(/{Ambassador}/g, ambassadorName) : '';
+
+        // Logical title display: 
+        // 1. If it's part 1, show normal title.
+        // 2. If it's part > 1 AND it's at the TOP of a slide (i === 0), show "(continued)".
+        // 3. Otherwise (part > 1 but not at top), don't show a title at all (flow into previous list).
+        let displayTitle = "";
+        let isContinuationSameSlide = false;
+        if (item.part === 1) {
+          displayTitle = block.title ? block.title.replace(/{Ambassador}/g, ambassadorName) : '';
+        } else if (i === 0) {
+          displayTitle = item.originalTitle ? `${item.originalTitle.replace(/{Ambassador}/g, ambassadorName)} (continued)` : '';
+        } else {
+          // Part > 1 and NOT at top of slide. Check if previous item was the same block.
+          if (group[i-1].originalTitle === item.originalTitle && group[i-1].svcName === item.svcName) {
+            isContinuationSameSlide = true;
+          }
+        }
+
         let blockBodyHTML = '';
         if (block.para) blockBodyHTML += `<p class="service-block-para">${block.para}</p>`;
         if (block.boldItems && block.boldItems.length) {
@@ -979,7 +1072,7 @@ function renderPreview() {
           blockBodyHTML += `<ul class="service-block-items">` + block.items.map(it => `<li>${it.replace(/{Ambassador}/g, ambassadorName)}</li>`).join('') + `</ul>`;
         }
         bodyHTML += `
-          <div class="service-block${displayTitle ? '' : ' service-block--no-title'}">
+          <div class="service-block${displayTitle ? '' : ' service-block--no-title'}${isContinuationSameSlide ? ' service-block--continuation' : ''}">
             ${displayTitle ? `<div class="service-block-title">${displayTitle}</div>` : ''}
             ${blockBodyHTML}
           </div>
