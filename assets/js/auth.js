@@ -113,7 +113,17 @@ async function handleSignup(e) {
   btn.disabled = true; btn.textContent = 'Creating account…';
 
   const db = getDB();
-  const { error } = await db.auth.signUp({ email, password });
+  
+  // Dynamic redirect back to the page the user signed up from (local or GitHub Pages)
+  const redirectUrl = window.location.origin + window.location.pathname;
+
+  const { error } = await db.auth.signUp({ 
+    email, 
+    password, 
+    options: {
+      emailRedirectTo: redirectUrl
+    }
+  });
   btn.disabled = false; btn.textContent = 'Create Account';
 
   if (error) { showAuthError(error.message); return; }
