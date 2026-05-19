@@ -211,8 +211,8 @@ const ANNEXURE_DATA = {
     sections: [
       {
         name: "Social Media — Content & Management", rows: [
-          { id: 1, cat: "Social Media", task: "Static posts with copies", freq: "20–30 per month", notes: "All product categories" },
-          { id: 2, cat: "Social Media", task: "Video / Reel / YT Shorts with copies", freq: "20–30 per month", notes: "Production-led video & shoot on actuals" },
+          { id: 1, cat: "Social Media", task: "Static posts with copies", freq: "10-15 per month", notes: "All product categories" },
+          { id: 2, cat: "Social Media", task: "Video / Reel / YT Shorts with copies", freq: "5-10 per month", notes: "Production-led video & shoot on actuals" },
           { id: 3, cat: "Social Media", task: "Story adaptations (engagement, offers, brand)", freq: "20–30 per month", notes: "—" },
           { id: 4, cat: "Social Media", task: "Content calendar — monthly", freq: "Monthly", notes: "Shared 7 days in advance" },
           { id: 5, cat: "Social Media", task: "Platform strategy (IG, YT, Twitter-X, FB)", freq: "Annual", notes: "—" },
@@ -338,17 +338,23 @@ function getActiveAnnexures() {
   });
 
   const activeStandard = ["A", "B1", "B2", "C"]
-    .filter(id => result[id] && Object.keys(result[id]).some(sn => result[id][sn].size > 0))
+    .filter(id => (result[id] && Object.keys(result[id]).some(sn => result[id][sn].size > 0)) || (ANNEXURE_DATA[id].sections && ANNEXURE_DATA[id].sections.some(s => s.isCustom)))
     .map(id => ({
       id,
       title: ANNEXURE_DATA[id].title,
       subtitle: ANNEXURE_DATA[id].subtitle,
       sections: ANNEXURE_DATA[id].sections
-        .filter(s => result[id][s.name] && result[id][s.name].size > 0)
-        .map(s => ({
-          name: s.name,
-          rows: Array.from(result[id][s.name]).sort((a, b) => a.id - b.id)
-        })),
+        .filter(s => s.isCustom || (result[id] && result[id][s.name] && result[id][s.name].size > 0))
+        .map(s => {
+          const rowsSet = (result[id] && result[id][s.name]) ? result[id][s.name] : new Set();
+          if (s.isCustom) {
+            (s.rows || []).forEach(row => rowsSet.add(row));
+          }
+          return {
+            name: s.name,
+            rows: Array.from(rowsSet).sort((a, b) => a.id - b.id)
+          };
+        }),
     }));
 
   const activeCustom = [];
@@ -425,14 +431,14 @@ function getOrderedServiceIds() {
       }
     });
   });
-  
+
   // Just in case any service is not in SERVICE_ORDER (fallback), append them at the end
   Object.keys(SERVICES).forEach(id => {
     if (!orderedIds.includes(id)) {
       orderedIds.push(id);
     }
   });
-  
+
   return orderedIds;
 }
 
@@ -567,25 +573,25 @@ function handleServiceAdd(e, sectionName) {
   if (e.key === 'Enter') {
     const val = e.target.value.trim();
     if (!val) return;
-    
+
     const svcId = 'custom_service_' + Date.now();
-    
+
     SERVICES[svcId] = {
       section: sectionName,
       name: val,
       blocks: []
     };
-    
+
     if (!SERVICE_ORDER[sectionName]) SERVICE_ORDER[sectionName] = [];
     SERVICE_ORDER[sectionName].push(svcId);
-    
+
     e.target.value = '';
     initPanel();
     renderPreview();
-    
+
     expandedServices[svcId] = true;
     initPanel();
-    
+
     setTimeout(() => {
       const blockCont = document.getElementById('blocks-' + svcId);
       if (blockCont) {
@@ -599,11 +605,11 @@ function handleServiceAdd(e, sectionName) {
 function deleteService(e, svcId) {
   e.stopPropagation();
   if (!confirm(`Are you sure you want to delete the service "${SERVICES[svcId].name}"?`)) return;
-  
+
   delete SERVICES[svcId];
   delete selectedItems[svcId];
   delete expandedServices[svcId];
-  
+
   initPanel();
   renderPreview();
   updateCount();
@@ -633,14 +639,14 @@ function handleServiceDrop(e, targetSvcId) {
 
   const rawData = e.dataTransfer.getData('text/plain');
   if (!rawData) return;
-  
+
   let data;
   try {
     data = JSON.parse(rawData);
   } catch (err) {
     return;
   }
-  
+
   const sourceSvcId = data.svcId;
   if (!sourceSvcId || sourceSvcId === targetSvcId) return;
 
@@ -902,7 +908,7 @@ function renderAnnexureSidebar() {
 
   if (activeAnnexures.length === 0) {
     container.innerHTML = `<div style="padding:20px; font-size:12px; color:rgba(255,255,255,0.3); text-align:center; font-style:italic;">Select services above to populate annexures or create a custom one below</div>`;
-    
+
     // Render the add custom annexure input even when empty!
     const addWrapper = document.createElement('div');
     addWrapper.className = 'annexure-add-wrapper';
@@ -953,10 +959,10 @@ function renderAnnexureSidebar() {
         </div>
 
         ${annex.sections.map((sec, si) => {
-          const secKey = `${annex.id}-${sec.name}`;
-          const isSecOpen = !!expandedAnnexureSections[secKey];
+      const secKey = `${annex.id}-${sec.name}`;
+      const isSecOpen = !!expandedAnnexureSections[secKey];
 
-          return `
+      return `
             <div class="item-row ${disabledAnnexureSections.has(`${annex.id}_${sec.name}`) ? '' : 'active'}" 
                  onclick="toggleAnnexureSectionVisibility(event, '${annex.id}', '${sec.name.replace(/'/g, "\\'")}')">
               <div class="item-checkbox">
@@ -971,14 +977,14 @@ function renderAnnexureSidebar() {
             </div>
             <div class="annexure-tasks-wrapper" style="max-height:${isSecOpen ? '10000px' : '0'}; overflow:hidden; transition: max-height 0.5s ease; padding-left:var(--annex-indent); margin-bottom:${isSecOpen ? '10px' : '0'};">
               ${sec.rows.map(row => {
-                const val = annexureOverrides[`${annex.id}_${row.id}`] || (annex.id === 'A' ? row.timing : row.freq);
-                const isRowDisabled = disabledAnnexureRows.has(`${annex.id}_${row.id}`);
-                const taskVal = annexureTaskOverrides[`${annex.id}_${row.id}`] || row.task;
-                const detailVal = annexureDetailOverrides[`${annex.id}_${row.id}`] || row.detail;
-                const notesVal = annexureNotesOverrides[`${annex.id}_${row.id}`] || row.notes;
-                const catVal = annexureCatOverrides[`${annex.id}_${row.id}`] || row.cat;
+        const val = annexureOverrides[`${annex.id}_${row.id}`] || (annex.id === 'A' ? row.timing : row.freq);
+        const isRowDisabled = disabledAnnexureRows.has(`${annex.id}_${row.id}`);
+        const taskVal = annexureTaskOverrides[`${annex.id}_${row.id}`] || row.task;
+        const detailVal = annexureDetailOverrides[`${annex.id}_${row.id}`] || row.detail;
+        const notesVal = annexureNotesOverrides[`${annex.id}_${row.id}`] || row.notes;
+        const catVal = annexureCatOverrides[`${annex.id}_${row.id}`] || row.cat;
 
-                return `
+        return `
                   <div class="annexure-edit-row" style="margin: 8px 12px 12px 0; display: flex; align-items: flex-start; gap: 8px;">
                     <div class="item-checkbox ${isRowDisabled ? '' : 'active'}" 
                          style="margin-top: 2px; flex-shrink: 0;" 
@@ -1025,24 +1031,20 @@ function renderAnnexureSidebar() {
                     </div>
                   </div>
                 `;
-              }).join('')}
+      }).join('')}
 
-              ${isCustomAnnex ? `
-                <div class="annexure-task-add-wrapper" style="margin: 8px 12px 12px 28px;">
-                  <span style="color: rgba(255,255,255,0.3); font-size: 14px; margin-right: 6px;">+</span>
-                  <input class="inline-add-input" placeholder="Add new task..." onkeydown="handleAnnexureRowAdd(event, '${annex.id}', '${sec.name.replace(/'/g, "\\'")}')">
-                </div>
-              ` : ''}
+              <div class="annexure-task-add-wrapper" style="margin: 8px 12px 12px 28px;">
+                <span style="color: rgba(255,255,255,0.3); font-size: 14px; margin-right: 6px;">+</span>
+                <input class="inline-add-input" placeholder="Add new task..." onkeydown="handleAnnexureRowAdd(event, '${annex.id}', '${sec.name.replace(/'/g, "\\'")}')">
+              </div>
             </div>
           `;
-        }).join('')}
+    }).join('')}
 
-        ${isCustomAnnex ? `
-          <div class="annexure-section-add-wrapper" style="padding: 12px 12px 12px 12px; border-top: 1px solid rgba(255,255,255,0.06);">
-            <span style="color: rgba(255,255,255,0.3); font-size: 14px; margin-right: 6px;">+</span>
-            <input class="inline-add-input" style="font-weight: 500;" placeholder="Add deliverable group (e.g. PR & Media)..." onkeydown="handleAnnexureSectionAdd(event, '${annex.id}')">
-          </div>
-        ` : ''}
+        <div class="annexure-section-add-wrapper" style="padding: 12px 12px 12px 12px; border-top: 1px solid rgba(255,255,255,0.06);">
+          <span style="color: rgba(255,255,255,0.3); font-size: 14px; margin-right: 6px;">+</span>
+          <input class="inline-add-input" style="font-weight: 500;" placeholder="Add deliverable group (e.g. PR & Media)..." onkeydown="handleAnnexureSectionAdd(event, '${annex.id}')">
+        </div>
       </div>
     `;
   });
@@ -1142,7 +1144,7 @@ function handleCustomAnnexureAdd(e) {
   if (e.key === 'Enter') {
     const val = e.target.value.trim();
     if (!val) return;
-    
+
     let cleanName = val;
     let id = val;
     if (val.toLowerCase().startsWith('annexure ')) {
@@ -1150,26 +1152,26 @@ function handleCustomAnnexureAdd(e) {
     } else {
       cleanName = 'Annexure ' + val;
     }
-    
+
     if (!id) return;
-    
+
     if (ANNEXURE_DATA[id]) {
       alert("An annexure with this name already exists!");
       return;
     }
-    
+
     ANNEXURE_DATA[id] = {
       title: cleanName,
       subtitle: cleanName + ' — Custom Plan',
       sections: []
     };
-    
+
     CUSTOM_ANNEXURE_IDS.add(id);
-    
+
     e.target.value = '';
     renderAnnexureSidebar();
     renderPreview();
-    
+
     const activeAn = getActiveAnnexures();
     const customIdx = activeAn.findIndex(a => a.id === id);
     if (customIdx !== -1) {
@@ -1182,12 +1184,12 @@ function handleCustomAnnexureAdd(e) {
 function deleteCustomAnnexure(e, annexId) {
   e.stopPropagation();
   if (!confirm(`Are you sure you want to delete the custom annexure "${ANNEXURE_DATA[annexId].title}"?`)) return;
-  
+
   delete ANNEXURE_DATA[annexId];
   CUSTOM_ANNEXURE_IDS.delete(annexId);
-  
+
   delete annexureHeadingOverrides[annexId];
-  
+
   renderAnnexureSidebar();
   renderPreview();
 }
@@ -1196,21 +1198,22 @@ function handleAnnexureSectionAdd(e, annexId) {
   if (e.key === 'Enter') {
     const val = e.target.value.trim();
     if (!val) return;
-    
+
     const annex = ANNEXURE_DATA[annexId];
     if (!annex) return;
-    
+
     if (!annex.sections) annex.sections = [];
     if (annex.sections.some(s => s.name === val)) {
       alert("This deliverable group already exists!");
       return;
     }
-    
+
     annex.sections.push({
       name: val,
-      rows: []
+      rows: [],
+      isCustom: true
     });
-    
+
     e.target.value = '';
     renderAnnexureSidebar();
     renderPreview();
@@ -1221,13 +1224,13 @@ function handleAnnexureRowAdd(e, annexId, secName) {
   if (e.key === 'Enter') {
     const val = e.target.value.trim();
     if (!val) return;
-    
+
     const annex = ANNEXURE_DATA[annexId];
     if (!annex) return;
-    
+
     const section = annex.sections.find(s => s.name === secName);
     if (!section) return;
-    
+
     const newRowId = Date.now();
     section.rows.push({
       id: newRowId,
@@ -1237,7 +1240,7 @@ function handleAnnexureRowAdd(e, annexId, secName) {
       freq: 'Once',
       notes: '—'
     });
-    
+
     e.target.value = '';
     renderAnnexureSidebar();
     renderPreview();
@@ -1482,10 +1485,12 @@ function renderPreview() {
             <div class="intro-plus">+</div>
             <div class="tnc-title">Terms and Conditions</div>
             <ul class="tnc-list">
-              <li>The commercials do not include third-party costs such as AI Licenses, photo banks, music, etc. they will be charged on actuals.</li>
+              <li>The commercials do not include third-party costs such as AI Licenses, purchasing images from photo banks / illustrations / video footage / integrations / 3D renders/ voice over / music that may be used, they will be charged on actuals.</li>
               <li>Shoots will be charged separately.</li>
-              <li>The agency will charge a 15% fee for all third-party facilitation.</li>
-              <li>Travel/boarding/lodging outside NCR will be on actuals.</li>
+              <li>The agency will charge a 15% fee for all third-party facilitation, media and influencer facilitation</li>
+              <li>Travel/boarding/lodging expenses outside the NCR will be on actuals and to be borne by the client.</li>
+              <li>Any third-party plugins, software, or tool subscriptions required for the execution of the services shall be procured upon prior approval from the client and shall be charged as actuals, over and above the agreed fees.</li>
+              <li>Please refer all the Annexures for final deliverables.</li>
               <li>All applicable taxes as per GOI will be extra.</li>
             </ul>
           </div>
@@ -1609,7 +1614,7 @@ function annexSlideA(sections) {
     .filter(sec => sec.rows.length > 0);
 
   const rowsHTML = filteredSections.map(sec => {
-    const sName = `<tr class="sc"><td colspan="6">${sec.name}</td></tr>`;
+    const sName = `<tr class="sc"><td colspan="5">${sec.name}</td></tr>`;
     const sRows = sec.rows.map((row, ri) => {
       const override = annexureOverrides[`A_${row.id}`];
       const taskOverride = annexureTaskOverrides[`A_${row.id}`];
@@ -1622,7 +1627,6 @@ function annexSlideA(sections) {
         <td>${taskOverride || row.task}</td>
         <td>${detailOverride || row.detail}</td>
         <td>${override || row.timing}</td>
-        <td>To Do</td>
         <td>${notesOverride || row.notes}</td>
       </tr>`;
     }).join('');
@@ -1633,11 +1637,11 @@ function annexSlideA(sections) {
 
   const t = `
   <table class="at">
-    <colgroup><col style="width:17px"><col style="width:112px"><col style="width:188px"><col style="width:78px"><col style="width:62px"><col style="width:143px"></colgroup>
+    <colgroup><col style="width:17px"><col style="width:130px"><col style="width:233px"><col style="width:110px"><col style="width:110px"></colgroup>
     <tbody>
-    <tr class="mh"><td colspan="6">${headingText} &nbsp;&nbsp;</td></tr>
-    <tr class="sp"><td colspan="6"></td></tr>
-    <tr class="ch"><td></td><td>Touchpoint</td><td>Deliverable Detail</td><td>Phase / Timing</td><td>Status</td><td>Notes</td></tr>
+    <tr class="mh"><td colspan="5">${headingText} &nbsp;&nbsp;</td></tr>
+    <tr class="sp"><td colspan="5"></td></tr>
+    <tr class="ch"><td></td><td>Category</td><td>Deliverable / Task</td><td>Quantity / Frequency</td><td>Exclusions / Notes</td></tr>
     ${rowsHTML}
     </tbody>
   </table>`;
@@ -1790,7 +1794,7 @@ function annexSlideCustom(annex) {
     .filter(sec => sec.rows.length > 0);
 
   const rowsHTML = filteredSections.map(sec => {
-    const sName = `<tr class="sc"><td colspan="6">${sec.name}</td></tr>`;
+    const sName = `<tr class="sc"><td colspan="5">${sec.name}</td></tr>`;
     const sRows = sec.rows.map((row, ri) => {
       const override = annexureOverrides[`${annex.id}_${row.id}`];
       const taskOverride = annexureTaskOverrides[`${annex.id}_${row.id}`];
@@ -1803,7 +1807,6 @@ function annexSlideCustom(annex) {
         <td>${taskOverride || row.task}</td>
         <td>${detailOverride || row.detail || ''}</td>
         <td>${override || row.timing || row.freq || ''}</td>
-        <td>To Do</td>
         <td>${notesOverride || row.notes || ''}</td>
       </tr>`;
     }).join('');
@@ -1814,11 +1817,11 @@ function annexSlideCustom(annex) {
 
   const t = `
   <table class="at">
-    <colgroup><col style="width:17px"><col style="width:112px"><col style="width:188px"><col style="width:78px"><col style="width:62px"><col style="width:143px"></colgroup>
+    <colgroup><col style="width:17px"><col style="width:130px"><col style="width:233px"><col style="width:110px"><col style="width:110px"></colgroup>
     <tbody>
-    <tr class="mh"><td colspan="6">${headingText} &nbsp;&nbsp;</td></tr>
-    <tr class="sp"><td colspan="6"></td></tr>
-    <tr class="ch"><td></td><td>Touchpoint</td><td>Deliverable Detail</td><td>Phase / Timing</td><td>Status</td><td>Notes</td></tr>
+    <tr class="mh"><td colspan="5">${headingText} &nbsp;&nbsp;</td></tr>
+    <tr class="sp"><td colspan="5"></td></tr>
+    <tr class="ch"><td></td><td>Category</td><td>Deliverable / Task</td><td>Quantity / Frequency</td><td>Exclusions / Notes</td></tr>
     ${rowsHTML}
     </tbody>
   </table>`;
