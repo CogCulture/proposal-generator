@@ -1575,12 +1575,12 @@ const ANNEX_STYLES = `
 .at{width:100%;border-collapse:collapse;border:1px solid #000;table-layout:fixed}
 .at td{border:1px solid #000;padding:0;vertical-align:top;overflow:hidden}
 /* main header */
-.at .mh td{background:#e00;color:#fff;font-size:8.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;text-align:center;padding:5px 4px;height:18px;line-height:1;vertical-align:middle;border:none}
+.at .mh td{background:#000;color:#fff;font-size:8.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;text-align:center;padding:5px 4px;height:18px;line-height:1;vertical-align:middle;border:none}
 /* sub header (Annexure A only) */
-.at .sh td{background:#e00;color:#fff;font-size:7px;font-weight:400;text-align:center;padding:2px 4px;height:11px;line-height:1;vertical-align:middle;border:none}
+.at .sh td{background:#000;color:#fff;font-size:7px;font-weight:400;text-align:center;padding:2px 4px;height:11px;line-height:1;vertical-align:middle;border:none}
 .at .sp td{background:#e7ecf4;height:7px;border-left:none;border-right:none;border-top:1px solid #000;border-bottom:none}
-.at .ch td{background:#5b5d60;color:#fff;font-size:6.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;text-align:center;vertical-align:middle;padding:5px 3px 6px;height:18px;line-height:1.2;border:1px solid #000}
-.at .sc td{background:#fff;color:#dd0000;font-size:7px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:2px 4px 2px 5px;height:11px;line-height:1;vertical-align:middle;border:1px solid #000}
+.at .ch td{background:#000;color:#fff;font-size:6.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;text-align:center;vertical-align:middle;padding:5px 3px 6px;height:18px;line-height:1.2;border:1px solid #000}
+.at .sc td{background:#fff;color:#000;font-size:7px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:2px 4px 2px 5px;height:11px;line-height:1;vertical-align:middle;border:1px solid #000}
 .at .dr td{background:#e7ecf4;height:11px;padding:2px 3px;font-size:7.5px;line-height:1;vertical-align:middle;border:1px solid #000}
 .at .dr.wh td{background:#fff}
 .at .dr td.nc{text-align:center;padding:2px 1px}
