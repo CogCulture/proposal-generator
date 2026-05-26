@@ -1472,7 +1472,10 @@ function renderPreview() {
 
   // DYNAMIC ANNEXURES BASED ON LOGIC
   if (annexureEnabled) {
-    slides.push(...generateDynamicAnnexureSlides());
+    const activeAnnexures = getActiveAnnexures();
+    if (activeAnnexures.length > 0) {
+      slides.push(...generateDynamicAnnexureSlides(activeAnnexures));
+    }
   }
 
   if (selectedList.length > 0) {
@@ -1595,405 +1598,152 @@ function annexSlideWrap(label, tableHTML) {
     </div>`;
 }
 
-function generateDynamicAnnexureSlides() {
-  const activeAnnexures = getActiveAnnexures().filter(a => !disabledAnnexures.has(a.id));
-  if (activeAnnexures.length === 0) return [];
-
-  const MAX_SCORE = 32; 
-  const HEADER_SCORE = 4;
-  const SECTION_HEADER_SCORE = 1.5; 
-  const ROW_SCORE = 1.1; 
-  
-  let annexureSlidesHTML = [];
-  let currentSlideHTML = '';
-  let currentScore = 0;
-  
-  function pushSlide() {
-    if (currentSlideHTML) {
-      annexureSlidesHTML.push(annexSlideWrap('', currentSlideHTML));
-      currentSlideHTML = '';
-      currentScore = 0;
-    }
-  }
+function generateDynamicAnnexureSlides(activeAnnexures) {
+  let processedItems = [];
 
   activeAnnexures.forEach(annex => {
-    const prefix = annex.id === 'A' || annex.id === 'B1' || annex.id === 'B2' || annex.id === 'C' ? `${annex.id}_` : `${annex.id}_`;
-    
-    let counter = 1;
+    if (disabledAnnexures.has(annex.id)) return;
+
+    let colgroup = `<colgroup><col style="width:17px"><col style="width:130px"><col style="width:233px"><col style="width:110px"><col style="width:110px"></colgroup>`;
+    if (annex.id === 'C') {
+      colgroup = `<colgroup><col style="width:17px"><col style="width:110px"><col style="width:200px"><col style="width:100px"><col style="width:173px"></colgroup>`;
+    }
+
+    const headingText = annexureHeadingOverrides[annex.id] || getAnnexureDefaultHeading(annex.id);
+    let titleHTML = `
+      <tr class="mh"><td colspan="5">${headingText} &nbsp;&nbsp;</td></tr>
+      <tr class="sp"><td colspan="5"></td></tr>
+      <tr class="ch"><td></td><td>Category</td><td>Deliverable / Task</td><td>Quantity / Frequency</td><td>Exclusions / Notes</td></tr>
+    `;
+
     const filteredSections = (annex.sections || [])
-      .filter(sec => !disabledAnnexureSections.has(`${prefix}${sec.name}`))
+      .filter(sec => !disabledAnnexureSections.has(`${annex.id}_${sec.name}`))
       .map(sec => {
-        const visibleRows = sec.rows.filter(row => !disabledAnnexureRows.has(`${prefix}${row.id}`));
+        const visibleRows = sec.rows.filter(row => !disabledAnnexureRows.has(`${annex.id}_${row.id}`));
         return { ...sec, rows: visibleRows };
       })
       .filter(sec => sec.rows.length > 0);
 
     if (filteredSections.length === 0) return;
 
-    let colGroup = `<colgroup><col style="width:17px"><col style="width:130px"><col style="width:233px"><col style="width:110px"><col style="width:110px"></colgroup>`;
-    if (annex.id === 'C') {
-      colGroup = `<colgroup><col style="width:17px"><col style="width:110px"><col style="width:200px"><col style="width:100px"><col style="width:173px"></colgroup>`;
-    }
-    
-    let headingText = annexureHeadingOverrides[annex.id] || '';
-    if (!headingText) {
-      if (annex.id === 'A') headingText = 'Brand Ambassador — Integrated Plan';
-      else if (annex.id === 'B1' || annex.id === 'B2') headingText = 'Creative ATL Scope of Work';
-      else if (annex.id === 'C') headingText = 'Digital Scope of Work | All Categories';
-      else headingText = annex.subtitle || annex.title || `Annexure ${annex.id}`;
+    let label = annex.title || \`Annexure \${annex.id}\`;
+    if (annex.id.startsWith('B') && !annex.title) {
+        label = \`Annexure B/\${annex.id.substring(1)}\`;
     }
 
-    const labelText = annex.id === 'B1' ? 'Annexure B/1' : (annex.id === 'B2' ? 'Annexure B/2' : (annex.title || `Annexure ${annex.id}`));
-
-    const renderHeaders = (isCont) => {
-      let html = `<div class="annex-label" style="margin-top: ${currentScore > 0 ? '16px' : '0'};">${labelText}${isCont ? ' (Continued)' : ''}</div>`;
-      html += `<table class="at" style="margin-bottom: 12px;">`;
-      html += colGroup;
-      html += `<tbody>`;
-      html += `<tr class="mh"><td colspan="5">${headingText}</td></tr>`;
-      html += `<tr class="sp"><td colspan="5"></td></tr>`;
-      html += `<tr class="ch"><td></td><td>Category</td><td>Deliverable / Task</td><td>Quantity / Frequency</td><td>Exclusions / Notes</td></tr>`;
-      return html;
-    };
-    
-    const renderRow = (row, ri) => {
-      const displayId = counter++;
-      const override = annexureOverrides[`${prefix}${row.id}`];
-      const taskOverride = annexureTaskOverrides[`${prefix}${row.id}`];
-      const detailOverride = annexureDetailOverrides[`${prefix}${row.id}`];
-      const catOverride = annexureCatOverrides[`${prefix}${row.id}`];
-      const notesOverride = annexureNotesOverrides[`${prefix}${row.id}`];
-      
-      let col2, col3, col4;
-      if (annex.id === 'A') {
-        col2 = taskOverride || row.task;
-        col3 = detailOverride || row.detail;
-        col4 = override || row.timing;
-      } else if (annex.id === 'B1' || annex.id === 'B2' || annex.id === 'C') {
-        col2 = catOverride || row.cat || '';
-        col3 = taskOverride || row.task;
-        col4 = override || row.freq;
-      } else {
-        col2 = taskOverride || row.task;
-        col3 = detailOverride || row.detail || '';
-        col4 = override || row.timing || row.freq || '';
-      }
-      const col5 = notesOverride || row.notes || '';
-      
-      return `
-      <tr class="dr ${ri % 2 === 0 ? 'wh' : ''}">
-        <td class="nc">${displayId}</td>
-        <td>${col2}</td>
-        <td>${col3}</td>
-        <td>${col4}</td>
-        <td>${col5}</td>
-      </tr>`;
-    };
-
-    let isContinued = false;
-    let pendingTableHTML = renderHeaders(isContinued);
-    let pendingTableScore = HEADER_SCORE + (currentScore > 0 ? 1.5 : 0);
-    
-    filteredSections.forEach(sec => {
-      const sectionScore = SECTION_HEADER_SCORE + (sec.rows.length * ROW_SCORE);
-      
-      if (currentScore + pendingTableScore + sectionScore > MAX_SCORE) {
-        if (currentScore === 0 && pendingTableScore + sectionScore > MAX_SCORE) {
-          // Section alone exceeds slide size, split it row by row
-          currentSlideHTML += pendingTableHTML;
-          currentSlideHTML += `<tr class="sc"><td colspan="5">${sec.name}</td></tr>`;
-          currentScore += pendingTableScore + SECTION_HEADER_SCORE;
-          
-          sec.rows.forEach((row, ri) => {
-            if (currentScore + ROW_SCORE > MAX_SCORE) {
-              currentSlideHTML += `</tbody></table>`;
-              pushSlide();
-              isContinued = true;
-              currentSlideHTML += renderHeaders(isContinued);
-              currentScore = HEADER_SCORE;
-            }
-            currentSlideHTML += renderRow(row, ri);
-            currentScore += ROW_SCORE;
-          });
-          
-          pendingTableHTML = "";
-          pendingTableScore = 0;
-          return;
-        } else {
-          // Close table and push
-          if (pendingTableHTML && pendingTableHTML !== renderHeaders(isContinued)) {
-            currentSlideHTML += pendingTableHTML + `</tbody></table>`;
-          }
-          pushSlide();
-          isContinued = true;
-          pendingTableHTML = renderHeaders(isContinued);
-          pendingTableScore = HEADER_SCORE;
-          
-          // Re-evaluate the current section on the new slide
-          if (pendingTableScore + sectionScore > MAX_SCORE) {
-             // Still doesn't fit? It's larger than a whole page, so split it
-             currentSlideHTML += pendingTableHTML;
-             currentSlideHTML += `<tr class="sc"><td colspan="5">${sec.name}</td></tr>`;
-             currentScore += pendingTableScore + SECTION_HEADER_SCORE;
-             
-             sec.rows.forEach((row, ri) => {
-               if (currentScore + ROW_SCORE > MAX_SCORE) {
-                 currentSlideHTML += `</tbody></table>`;
-                 pushSlide();
-                 currentSlideHTML += renderHeaders(isContinued);
-                 currentScore = HEADER_SCORE;
-               }
-               currentSlideHTML += renderRow(row, ri);
-               currentScore += ROW_SCORE;
-             });
-             pendingTableHTML = "";
-             pendingTableScore = 0;
-             return;
-          }
-        }
-      }
-      
-      pendingTableHTML += `<tr class="sc"><td colspan="5">${sec.name}</td></tr>`;
-      sec.rows.forEach((row, ri) => {
-        pendingTableHTML += renderRow(row, ri);
-      });
-      pendingTableScore += sectionScore;
+    processedItems.push({
+      type: 'annex-start',
+      id: annex.id,
+      label: label,
+      colgroup: colgroup,
+      titleHTML: titleHTML,
+      score: 5
     });
 
-    if (pendingTableHTML && pendingTableHTML !== renderHeaders(isContinued)) {
-      currentSlideHTML += pendingTableHTML + `</tbody></table>`;
-      currentScore += pendingTableScore;
-    }
+    let counter = 1;
+    filteredSections.forEach(sec => {
+      processedItems.push({
+        type: 'section',
+        html: \`<tr class="sc"><td colspan="5">\${sec.name}</td></tr>\`,
+        score: 1.5
+      });
+
+      sec.rows.forEach((row, ri) => {
+        let html = '';
+        if (annex.id === 'A') {
+          html = \`<tr class="dr \${ri % 2 === 0 ? 'wh' : ''}"><td class="nc">\${counter++}</td><td>\${annexureTaskOverrides[\`A_\${row.id}\`] || row.task}</td><td>\${annexureDetailOverrides[\`A_\${row.id}\`] || row.detail}</td><td>\${annexureOverrides[\`A_\${row.id}\`] || row.timing}</td><td>\${annexureNotesOverrides[\`A_\${row.id}\`] || row.notes}</td></tr>\`;
+        } else if (annex.id === 'B1' || annex.id === 'B2' || annex.id === 'C') {
+          html = \`<tr class="dr \${ri % 2 === 0 ? 'wh' : ''}"><td class="nc">\${counter++}</td><td>\${annexureCatOverrides[\`\${annex.id}_\${row.id}\`] || row.cat || ''}</td><td>\${annexureTaskOverrides[\`\${annex.id}_\${row.id}\`] || row.task}</td><td>\${annexureOverrides[\`\${annex.id}_\${row.id}\`] || row.freq}</td><td>\${annexureNotesOverrides[\`\${annex.id}_\${row.id}\`] || row.notes}</td></tr>\`;
+        } else {
+          html = \`<tr class="dr \${ri % 2 === 0 ? 'wh' : ''}"><td class="nc">\${counter++}</td><td>\${annexureTaskOverrides[\`\${annex.id}_\${row.id}\`] || row.task}</td><td>\${annexureDetailOverrides[\`\${annex.id}_\${row.id}\`] || row.detail || ''}</td><td>\${annexureOverrides[\`\${annex.id}_\${row.id}\`] || row.timing || row.freq || ''}</td><td>\${annexureNotesOverrides[\`\${annex.id}_\${row.id}\`] || row.notes || ''}</td></tr>\`;
+        }
+
+        let rowScore = 1.0;
+        let textLen = html.length; 
+        if (textLen > 250) rowScore = 1.5;
+        if (textLen > 350) rowScore = 2.0;
+        if (textLen > 450) rowScore = 2.5;
+
+        processedItems.push({
+          type: 'row',
+          html: html,
+          score: rowScore
+        });
+      });
+    });
+    
+    processedItems.push({
+      type: 'annex-end',
+      score: 1.5
+    });
   });
 
-  if (currentSlideHTML) {
-    pushSlide();
+  let outSlides = [];
+  let currentGroup = [];
+  let currentScore = 0;
+  const SLIDE_LIMIT = 35; // Safe limit to prevent overlap with footer
+
+  let activeAnnexContext = null;
+
+  for (let i = 0; i < processedItems.length; i++) {
+    const item = processedItems[i];
+
+    if (item.type === 'annex-start') {
+      activeAnnexContext = item;
+      // If adding this header (+ some rows) exceeds the limit, break to new slide
+      if (currentScore > 0 && (currentScore + item.score + 4 > SLIDE_LIMIT)) {
+        outSlides.push(currentGroup);
+        currentGroup = [];
+        currentScore = 0;
+      }
+    }
+
+    currentGroup.push(item);
+    currentScore += item.score;
+
+    if (currentScore >= SLIDE_LIMIT) {
+      outSlides.push(currentGroup);
+      currentGroup = [];
+      currentScore = 0;
+      
+      // If we broke inside an annexure, start the next slide with the column headers
+      if (i + 1 < processedItems.length && (processedItems[i+1].type === 'section' || processedItems[i+1].type === 'row')) {
+         currentGroup.push({
+           type: 'annex-continued',
+           label: activeAnnexContext.label + ' (Continued)',
+           colgroup: activeAnnexContext.colgroup,
+           titleHTML: activeAnnexContext.titleHTML,
+           score: activeAnnexContext.score
+         });
+         currentScore += activeAnnexContext.score;
+      }
+    }
+  }
+  
+  if (currentGroup.length > 0) {
+    outSlides.push(currentGroup);
   }
 
-  return annexureSlidesHTML;
-}
+  return outSlides.map(group => {
+    let bodyHTML = "";
+    let inTable = false;
 
-function annexSlideA(sections) {
-  let counter = 1;
-  const filteredSections = sections
-    .filter(sec => !disabledAnnexureSections.has(`A_${sec.name}`))
-    .map(sec => {
-      const visibleRows = sec.rows.filter(row => !disabledAnnexureRows.has(`A_${row.id}`));
-      return { ...sec, rows: visibleRows };
-    })
-    .filter(sec => sec.rows.length > 0);
+    group.forEach((item, index) => {
+      if (item.type === 'annex-start' || item.type === 'annex-continued') {
+        if (inTable) bodyHTML += \`</tbody></table>\`;
+        bodyHTML += \`<div class="annex-label" style="margin-top: \${index === 0 ? '6px' : '20px'}">\${item.label}</div>\`;
+        bodyHTML += \`<table class="at">\${item.colgroup}<tbody>\${item.titleHTML}\`;
+        inTable = true;
+      } else if (item.type === 'annex-end') {
+        if (inTable) bodyHTML += \`</tbody></table>\`;
+        inTable = false;
+      } else if (item.type === 'section' || item.type === 'row') {
+        bodyHTML += item.html;
+      }
+    });
 
-  const rowsHTML = filteredSections.map(sec => {
-    const sName = `<tr class="sc"><td colspan="5">${sec.name}</td></tr>`;
-    const sRows = sec.rows.map((row, ri) => {
-      const override = annexureOverrides[`A_${row.id}`];
-      const taskOverride = annexureTaskOverrides[`A_${row.id}`];
-      const detailOverride = annexureDetailOverrides[`A_${row.id}`];
-      const notesOverride = annexureNotesOverrides[`A_${row.id}`];
-      const displayId = counter++;
-      return `
-      <tr class="dr ${ri % 2 === 0 ? 'wh' : ''}">
-        <td class="nc">${displayId}</td>
-        <td>${taskOverride || row.task}</td>
-        <td>${detailOverride || row.detail}</td>
-        <td>${override || row.timing}</td>
-        <td>${notesOverride || row.notes}</td>
-      </tr>`;
-    }).join('');
-    return sName + sRows;
-  }).join('');
+    if (inTable) bodyHTML += \`</tbody></table>\`;
 
-  const headingText = annexureHeadingOverrides['A'] || 'Brand Ambassador — Integrated Plan';
-
-  const t = `
-  <table class="at">
-    <colgroup><col style="width:17px"><col style="width:130px"><col style="width:233px"><col style="width:110px"><col style="width:110px"></colgroup>
-    <tbody>
-    <tr class="mh"><td colspan="5">${headingText} &nbsp;&nbsp;</td></tr>
-    <tr class="sp"><td colspan="5"></td></tr>
-    <tr class="ch"><td></td><td>Category</td><td>Deliverable / Task</td><td>Quantity / Frequency</td><td>Exclusions / Notes</td></tr>
-    ${rowsHTML}
-    </tbody>
-  </table>`;
-  return annexSlideWrap('Annexure A', t);
-}
-
-function annexSlideB1(sections) {
-  let counter = 1;
-  const filteredSections = sections
-    .filter(sec => !disabledAnnexureSections.has(`B1_${sec.name}`))
-    .map(sec => {
-      const visibleRows = sec.rows.filter(row => !disabledAnnexureRows.has(`B1_${row.id}`));
-      return { ...sec, rows: visibleRows };
-    })
-    .filter(sec => sec.rows.length > 0);
-
-  const rowsHTML = filteredSections.map(sec => {
-    const sName = `<tr class="sc"><td colspan="5">${sec.name}</td></tr>`;
-    const sRows = sec.rows.map((row, ri) => {
-      const override = annexureOverrides[`B1_${row.id}`];
-      const taskOverride = annexureTaskOverrides[`B1_${row.id}`];
-      const catOverride = annexureCatOverrides[`B1_${row.id}`];
-      const notesOverride = annexureNotesOverrides[`B1_${row.id}`];
-      const displayId = counter++;
-      return `
-      <tr class="dr ${ri % 2 === 0 ? 'wh' : ''}">
-        <td class="nc">${displayId}</td>
-        <td>${catOverride || row.cat || ''}</td>
-        <td>${taskOverride || row.task}</td>
-        <td>${override || row.freq}</td>
-        <td>${notesOverride || row.notes}</td>
-      </tr>`;
-    }).join('');
-    return sName + sRows;
-  }).join('');
-
-  const headingText = annexureHeadingOverrides['B1'] || 'Creative ATL Scope of Work';
-
-  const t = `
-  <table class="at">
-    <colgroup><col style="width:17px"><col style="width:130px"><col style="width:233px"><col style="width:110px"><col style="width:110px"></colgroup>
-    <tbody>
-    <tr class="mh"><td colspan="5">${headingText} &nbsp;</td></tr>
-    <tr class="sp"><td colspan="5"></td></tr>
-    <tr class="ch"><td></td><td>Category</td><td>Deliverable / Task</td><td>Quantity / Frequency</td><td>Exclusions / Notes</td></tr>
-    ${rowsHTML}
-    </tbody>
-  </table>`;
-  return annexSlideWrap('Annexure B/1', t);
-}
-
-function annexSlideB2(sections) {
-  let counter = 1;
-  const filteredSections = sections
-    .filter(sec => !disabledAnnexureSections.has(`B2_${sec.name}`))
-    .map(sec => {
-      const visibleRows = sec.rows.filter(row => !disabledAnnexureRows.has(`B2_${row.id}`));
-      return { ...sec, rows: visibleRows };
-    })
-    .filter(sec => sec.rows.length > 0);
-
-  const rowsHTML = filteredSections.map(sec => {
-    const sName = `<tr class="sc"><td colspan="5">${sec.name}</td></tr>`;
-    const sRows = sec.rows.map((row, ri) => {
-      const override = annexureOverrides[`B2_${row.id}`];
-      const taskOverride = annexureTaskOverrides[`B2_${row.id}`];
-      const catOverride = annexureCatOverrides[`B2_${row.id}`];
-      const notesOverride = annexureNotesOverrides[`B2_${row.id}`];
-      const displayId = counter++;
-      return `
-      <tr class="dr ${ri % 2 === 0 ? 'wh' : ''}">
-        <td class="nc">${displayId}</td>
-        <td>${catOverride || row.cat || ''}</td>
-        <td>${taskOverride || row.task}</td>
-        <td>${override || row.freq}</td>
-        <td>${notesOverride || row.notes}</td>
-      </tr>`;
-    }).join('');
-    return sName + sRows;
-  }).join('');
-
-  const headingText = annexureHeadingOverrides['B2'] || 'Creative ATL Scope of Work';
-
-  const t = `
-  <table class="at">
-    <colgroup><col style="width:17px"><col style="width:130px"><col style="width:233px"><col style="width:110px"><col style="width:110px"></colgroup>
-    <tbody>
-    <tr class="mh"><td colspan="5">${headingText}</td></tr>
-    <tr class="sp"><td colspan="5"></td></tr>
-    <tr class="ch"><td></td><td>Category</td><td>Deliverable / Task</td><td>Quantity / Frequency</td><td>Exclusions / Notes</td></tr>
-    ${rowsHTML}
-    </tbody>
-  </table>`;
-  return annexSlideWrap('Annexure B/2', t);
-}
-
-function annexSlideC(sections) {
-  let counter = 1;
-  const filteredSections = sections
-    .filter(sec => !disabledAnnexureSections.has(`C_${sec.name}`))
-    .map(sec => {
-      const visibleRows = sec.rows.filter(row => !disabledAnnexureRows.has(`C_${row.id}`));
-      return { ...sec, rows: visibleRows };
-    })
-    .filter(sec => sec.rows.length > 0);
-
-  const rowsHTML = filteredSections.map(sec => {
-    const sName = `<tr class="sc"><td colspan="5">${sec.name}</td></tr>`;
-    const sRows = sec.rows.map((row, ri) => {
-      const override = annexureOverrides[`C_${row.id}`];
-      const taskOverride = annexureTaskOverrides[`C_${row.id}`];
-      const catOverride = annexureCatOverrides[`C_${row.id}`];
-      const notesOverride = annexureNotesOverrides[`C_${row.id}`];
-      const displayId = counter++;
-      return `
-      <tr class="dr ${ri % 2 === 0 ? 'wh' : ''}">
-        <td class="nc">${displayId}</td>
-        <td>${catOverride || row.cat || ''}</td>
-        <td>${taskOverride || row.task}</td>
-        <td>${override || row.freq}</td>
-        <td>${notesOverride || row.notes}</td>
-      </tr>`;
-    }).join('');
-    return sName + sRows;
-  }).join('');
-
-  const headingText = annexureHeadingOverrides['C'] || 'Digital Scope of Work | All Categories';
-
-  const t = `
-  <table class="at">
-    <colgroup><col style="width:17px"><col style="width:110px"><col style="width:200px"><col style="width:100px"><col style="width:173px"></colgroup>
-    <tbody>
-    <tr class="mh"><td colspan="5">${headingText}</td></tr>
-    <tr class="sp"><td colspan="5"></td></tr>
-    <tr class="ch"><td></td><td>Category</td><td>Deliverable / Task</td><td>Quantity / Frequency</td><td>Exclusions / Notes</td></tr>
-    ${rowsHTML}
-    </tbody>
-  </table>`;
-  return annexSlideWrap('Annexure C', t);
-}
-
-function annexSlideCustom(annex) {
-  let counter = 1;
-  const filteredSections = (annex.sections || [])
-    .filter(sec => !disabledAnnexureSections.has(`${annex.id}_${sec.name}`))
-    .map(sec => {
-      const visibleRows = sec.rows.filter(row => !disabledAnnexureRows.has(`${annex.id}_${row.id}`));
-      return { ...sec, rows: visibleRows };
-    })
-    .filter(sec => sec.rows.length > 0);
-
-  const rowsHTML = filteredSections.map(sec => {
-    const sName = `<tr class="sc"><td colspan="5">${sec.name}</td></tr>`;
-    const sRows = sec.rows.map((row, ri) => {
-      const override = annexureOverrides[`${annex.id}_${row.id}`];
-      const taskOverride = annexureTaskOverrides[`${annex.id}_${row.id}`];
-      const detailOverride = annexureDetailOverrides[`${annex.id}_${row.id}`];
-      const notesOverride = annexureNotesOverrides[`${annex.id}_${row.id}`];
-      const displayId = counter++;
-      return `
-      <tr class="dr ${ri % 2 === 0 ? 'wh' : ''}">
-        <td class="nc">${displayId}</td>
-        <td>${taskOverride || row.task}</td>
-        <td>${detailOverride || row.detail || ''}</td>
-        <td>${override || row.timing || row.freq || ''}</td>
-        <td>${notesOverride || row.notes || ''}</td>
-      </tr>`;
-    }).join('');
-    return sName + sRows;
-  }).join('');
-
-  const headingText = annexureHeadingOverrides[annex.id] || annex.subtitle || annex.title || `Annexure ${annex.id}`;
-
-  const t = `
-  <table class="at">
-    <colgroup><col style="width:17px"><col style="width:130px"><col style="width:233px"><col style="width:110px"><col style="width:110px"></colgroup>
-    <tbody>
-    <tr class="mh"><td colspan="5">${headingText} &nbsp;&nbsp;</td></tr>
-    <tr class="sp"><td colspan="5"></td></tr>
-    <tr class="ch"><td></td><td>Category</td><td>Deliverable / Task</td><td>Quantity / Frequency</td><td>Exclusions / Notes</td></tr>
-    ${rowsHTML}
-    </tbody>
-  </table>`;
-  return annexSlideWrap(annex.title || `Annexure ${annex.id}`, t);
+    return annexSlideWrap('', bodyHTML);
+  });
 }
