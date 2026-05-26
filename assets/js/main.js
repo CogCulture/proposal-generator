@@ -1472,15 +1472,7 @@ function renderPreview() {
 
   // DYNAMIC ANNEXURES BASED ON LOGIC
   if (annexureEnabled) {
-    const activeAnnexures = getActiveAnnexures();
-    activeAnnexures.forEach(annex => {
-      if (disabledAnnexures.has(annex.id)) return;
-      if (annex.id === "A") slides.push(annexSlideA(annex.sections));
-      else if (annex.id === "B1") slides.push(annexSlideB1(annex.sections));
-      else if (annex.id === "B2") slides.push(annexSlideB2(annex.sections));
-      else if (annex.id === "C") slides.push(annexSlideC(annex.sections));
-      else slides.push(annexSlideCustom(annex));
-    });
+    slides.push(...generateDynamicAnnexureSlides());
   }
 
   if (selectedList.length > 0) {
@@ -1595,12 +1587,190 @@ function annexSlideWrap(label, tableHTML) {
         <div class="slide-header"><img src="assets/img/header.png" style="width:100%;height:auto;display:block;" /></div>
         <div class="slide-body annex-slide" style="padding:0 28px;overflow:hidden;">
           ${ANNEX_STYLES}
-          <div class="annex-label">${label}</div>
+          ${label ? `<div class="annex-label">${label}</div>` : ''}
           ${tableHTML}
         </div>
         <div class="slide-footer"><img src="assets/img/footer.png" style="width:100%;height:auto;display:block;" /></div>
       </div></div>
     </div>`;
+}
+
+function generateDynamicAnnexureSlides() {
+  const activeAnnexures = getActiveAnnexures().filter(a => !disabledAnnexures.has(a.id));
+  if (activeAnnexures.length === 0) return [];
+
+  const MAX_SCORE = 32; 
+  const HEADER_SCORE = 4;
+  const SECTION_HEADER_SCORE = 1.5; 
+  const ROW_SCORE = 1.1; 
+  
+  let annexureSlidesHTML = [];
+  let currentSlideHTML = '';
+  let currentScore = 0;
+  
+  function pushSlide() {
+    if (currentSlideHTML) {
+      annexureSlidesHTML.push(annexSlideWrap('', currentSlideHTML));
+      currentSlideHTML = '';
+      currentScore = 0;
+    }
+  }
+
+  activeAnnexures.forEach(annex => {
+    const prefix = annex.id === 'A' || annex.id === 'B1' || annex.id === 'B2' || annex.id === 'C' ? `${annex.id}_` : `${annex.id}_`;
+    
+    let counter = 1;
+    const filteredSections = (annex.sections || [])
+      .filter(sec => !disabledAnnexureSections.has(`${prefix}${sec.name}`))
+      .map(sec => {
+        const visibleRows = sec.rows.filter(row => !disabledAnnexureRows.has(`${prefix}${row.id}`));
+        return { ...sec, rows: visibleRows };
+      })
+      .filter(sec => sec.rows.length > 0);
+
+    if (filteredSections.length === 0) return;
+
+    let colGroup = `<colgroup><col style="width:17px"><col style="width:130px"><col style="width:233px"><col style="width:110px"><col style="width:110px"></colgroup>`;
+    if (annex.id === 'C') {
+      colGroup = `<colgroup><col style="width:17px"><col style="width:110px"><col style="width:200px"><col style="width:100px"><col style="width:173px"></colgroup>`;
+    }
+    
+    let headingText = annexureHeadingOverrides[annex.id] || '';
+    if (!headingText) {
+      if (annex.id === 'A') headingText = 'Brand Ambassador — Integrated Plan';
+      else if (annex.id === 'B1' || annex.id === 'B2') headingText = 'Creative ATL Scope of Work';
+      else if (annex.id === 'C') headingText = 'Digital Scope of Work | All Categories';
+      else headingText = annex.subtitle || annex.title || `Annexure ${annex.id}`;
+    }
+
+    const labelText = annex.id === 'B1' ? 'Annexure B/1' : (annex.id === 'B2' ? 'Annexure B/2' : (annex.title || `Annexure ${annex.id}`));
+
+    const renderHeaders = (isCont) => {
+      let html = `<div class="annex-label" style="margin-top: ${currentScore > 0 ? '16px' : '0'};">${labelText}${isCont ? ' (Continued)' : ''}</div>`;
+      html += `<table class="at" style="margin-bottom: 12px;">`;
+      html += colGroup;
+      html += `<tbody>`;
+      html += `<tr class="mh"><td colspan="5">${headingText}</td></tr>`;
+      html += `<tr class="sp"><td colspan="5"></td></tr>`;
+      html += `<tr class="ch"><td></td><td>Category</td><td>Deliverable / Task</td><td>Quantity / Frequency</td><td>Exclusions / Notes</td></tr>`;
+      return html;
+    };
+    
+    const renderRow = (row, ri) => {
+      const displayId = counter++;
+      const override = annexureOverrides[`${prefix}${row.id}`];
+      const taskOverride = annexureTaskOverrides[`${prefix}${row.id}`];
+      const detailOverride = annexureDetailOverrides[`${prefix}${row.id}`];
+      const catOverride = annexureCatOverrides[`${prefix}${row.id}`];
+      const notesOverride = annexureNotesOverrides[`${prefix}${row.id}`];
+      
+      let col2, col3, col4;
+      if (annex.id === 'A') {
+        col2 = taskOverride || row.task;
+        col3 = detailOverride || row.detail;
+        col4 = override || row.timing;
+      } else if (annex.id === 'B1' || annex.id === 'B2' || annex.id === 'C') {
+        col2 = catOverride || row.cat || '';
+        col3 = taskOverride || row.task;
+        col4 = override || row.freq;
+      } else {
+        col2 = taskOverride || row.task;
+        col3 = detailOverride || row.detail || '';
+        col4 = override || row.timing || row.freq || '';
+      }
+      const col5 = notesOverride || row.notes || '';
+      
+      return `
+      <tr class="dr ${ri % 2 === 0 ? 'wh' : ''}">
+        <td class="nc">${displayId}</td>
+        <td>${col2}</td>
+        <td>${col3}</td>
+        <td>${col4}</td>
+        <td>${col5}</td>
+      </tr>`;
+    };
+
+    let isContinued = false;
+    let pendingTableHTML = renderHeaders(isContinued);
+    let pendingTableScore = HEADER_SCORE + (currentScore > 0 ? 1.5 : 0);
+    
+    filteredSections.forEach(sec => {
+      const sectionScore = SECTION_HEADER_SCORE + (sec.rows.length * ROW_SCORE);
+      
+      if (currentScore + pendingTableScore + sectionScore > MAX_SCORE) {
+        if (currentScore === 0 && pendingTableScore + sectionScore > MAX_SCORE) {
+          // Section alone exceeds slide size, split it row by row
+          currentSlideHTML += pendingTableHTML;
+          currentSlideHTML += `<tr class="sc"><td colspan="5">${sec.name}</td></tr>`;
+          currentScore += pendingTableScore + SECTION_HEADER_SCORE;
+          
+          sec.rows.forEach((row, ri) => {
+            if (currentScore + ROW_SCORE > MAX_SCORE) {
+              currentSlideHTML += `</tbody></table>`;
+              pushSlide();
+              isContinued = true;
+              currentSlideHTML += renderHeaders(isContinued);
+              currentScore = HEADER_SCORE;
+            }
+            currentSlideHTML += renderRow(row, ri);
+            currentScore += ROW_SCORE;
+          });
+          
+          pendingTableHTML = "";
+          pendingTableScore = 0;
+          return;
+        } else {
+          // Close table and push
+          if (pendingTableHTML && pendingTableHTML !== renderHeaders(isContinued)) {
+            currentSlideHTML += pendingTableHTML + `</tbody></table>`;
+          }
+          pushSlide();
+          isContinued = true;
+          pendingTableHTML = renderHeaders(isContinued);
+          pendingTableScore = HEADER_SCORE;
+          
+          // Re-evaluate the current section on the new slide
+          if (pendingTableScore + sectionScore > MAX_SCORE) {
+             // Still doesn't fit? It's larger than a whole page, so split it
+             currentSlideHTML += pendingTableHTML;
+             currentSlideHTML += `<tr class="sc"><td colspan="5">${sec.name}</td></tr>`;
+             currentScore += pendingTableScore + SECTION_HEADER_SCORE;
+             
+             sec.rows.forEach((row, ri) => {
+               if (currentScore + ROW_SCORE > MAX_SCORE) {
+                 currentSlideHTML += `</tbody></table>`;
+                 pushSlide();
+                 currentSlideHTML += renderHeaders(isContinued);
+                 currentScore = HEADER_SCORE;
+               }
+               currentSlideHTML += renderRow(row, ri);
+               currentScore += ROW_SCORE;
+             });
+             pendingTableHTML = "";
+             pendingTableScore = 0;
+             return;
+          }
+        }
+      }
+      
+      pendingTableHTML += `<tr class="sc"><td colspan="5">${sec.name}</td></tr>`;
+      sec.rows.forEach((row, ri) => {
+        pendingTableHTML += renderRow(row, ri);
+      });
+      pendingTableScore += sectionScore;
+    });
+
+    if (pendingTableHTML && pendingTableHTML !== renderHeaders(isContinued)) {
+      currentSlideHTML += pendingTableHTML + `</tbody></table>`;
+      currentScore += pendingTableScore;
+    }
+  });
+
+  if (currentSlideHTML) {
+    pushSlide();
+  }
+
+  return annexureSlidesHTML;
 }
 
 function annexSlideA(sections) {
