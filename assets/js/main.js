@@ -1470,6 +1470,19 @@ function renderPreview() {
     });
   }
 
+  // DYNAMIC ANNEXURES BASED ON LOGIC
+  if (annexureEnabled) {
+    const activeAnnexures = getActiveAnnexures();
+    activeAnnexures.forEach(annex => {
+      if (disabledAnnexures.has(annex.id)) return;
+      if (annex.id === "A") slides.push(annexSlideA(annex.sections));
+      else if (annex.id === "B1") slides.push(annexSlideB1(annex.sections));
+      else if (annex.id === "B2") slides.push(annexSlideB2(annex.sections));
+      else if (annex.id === "C") slides.push(annexSlideC(annex.sections));
+      else slides.push(annexSlideCustom(annex));
+    });
+  }
+
   if (selectedList.length > 0) {
     slides.push(`
       <div class="slide">
@@ -1498,19 +1511,6 @@ function renderPreview() {
         </div></div>
       </div>
     `);
-  }
-
-  // DYNAMIC ANNEXURES BASED ON LOGIC
-  if (annexureEnabled) {
-    const activeAnnexures = getActiveAnnexures();
-    activeAnnexures.forEach(annex => {
-      if (disabledAnnexures.has(annex.id)) return;
-      if (annex.id === "A") slides.push(annexSlideA(annex.sections));
-      else if (annex.id === "B1") slides.push(annexSlideB1(annex.sections));
-      else if (annex.id === "B2") slides.push(annexSlideB2(annex.sections));
-      else if (annex.id === "C") slides.push(annexSlideC(annex.sections));
-      else slides.push(annexSlideCustom(annex));
-    });
   }
 
   slides.push(`
