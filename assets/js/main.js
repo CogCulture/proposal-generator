@@ -1308,6 +1308,18 @@ function renderPreview() {
   const ambassadorName = document.getElementById('ambassadorInput')?.value.trim() || 'Brand Ambassador';
   const costValue = document.getElementById('costInput')?.value.trim() || 'xxxx';
   const paymentValue = document.getElementById('paymentInput')?.value.trim() || 'Monthly Advance';
+
+  const defaultTnc = `The commercials do not include third-party costs such as AI Licenses, purchasing images from photo banks / illustrations / video footage / integrations / 3D renders/ voice over / music that may be used, they will be charged on actuals.
+Shoots will be charged separately.
+The agency will charge a 15% fee for all third-party facilitation, media and influencer facilitation
+Travel/boarding/lodging expenses outside the NCR will be on actuals and to be borne by the client.
+Any third-party plugins, software, or tool subscriptions required for the execution of the services shall be procured upon prior approval from the client and shall be charged as actuals, over and above the agreed fees.
+Please refer all the Annexures for final deliverables.
+All applicable taxes as per GOI will be extra.`;
+  const tncInput = document.getElementById('tncInput');
+  const tncValue = (tncInput && tncInput.value.trim() !== '') ? tncInput.value.trim() : defaultTnc;
+  const tncHTML = tncValue.split('\n').filter(line => line.trim()).map(line => `<li>${line}</li>`).join('');
+
   const scroll = document.getElementById('previewScroll');
   if (!scroll) return;
   const selectedList = getOrderedServiceIds().filter(id => anyItemsInService(id));
@@ -1493,13 +1505,7 @@ function renderPreview() {
             <div class="intro-plus">+</div>
             <div class="tnc-title">Terms and Conditions</div>
             <ul class="tnc-list">
-              <li>The commercials do not include third-party costs such as AI Licenses, purchasing images from photo banks / illustrations / video footage / integrations / 3D renders/ voice over / music that may be used, they will be charged on actuals.</li>
-              <li>Shoots will be charged separately.</li>
-              <li>The agency will charge a 15% fee for all third-party facilitation, media and influencer facilitation</li>
-              <li>Travel/boarding/lodging expenses outside the NCR will be on actuals and to be borne by the client.</li>
-              <li>Any third-party plugins, software, or tool subscriptions required for the execution of the services shall be procured upon prior approval from the client and shall be charged as actuals, over and above the agreed fees.</li>
-              <li>Please refer all the Annexures for final deliverables.</li>
-              <li>All applicable taxes as per GOI will be extra.</li>
+              ${tncHTML}
             </ul>
           </div>
           <div class="slide-footer"><img src="assets/img/footer.png" style="width:100%;" /></div>
