@@ -1681,7 +1681,7 @@ function generateDynamicAnnexureSlides(activeAnnexures) {
   let outSlides = [];
   let currentGroup = [];
   let currentScore = 0;
-  const SLIDE_LIMIT = 35; // Safe limit to prevent overlap with footer
+  const SLIDE_LIMIT = 55; // Increased limit to utilize more whitespace
 
   let activeAnnexContext = null;
 
@@ -1691,7 +1691,7 @@ function generateDynamicAnnexureSlides(activeAnnexures) {
     if (item.type === 'annex-start') {
       activeAnnexContext = item;
       // If adding this header (+ some rows) exceeds the limit, break to new slide
-      if (currentScore > 0 && (currentScore + item.score + 4 > SLIDE_LIMIT)) {
+      if (currentScore > 0 && (currentScore + item.score + 2 > SLIDE_LIMIT)) {
         outSlides.push(currentGroup);
         currentGroup = [];
         currentScore = 0;
