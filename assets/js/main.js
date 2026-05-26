@@ -1626,9 +1626,9 @@ function generateDynamicAnnexureSlides(activeAnnexures) {
 
     if (filteredSections.length === 0) return;
 
-    let label = annex.title || \`Annexure \${annex.id}\`;
+    let label = annex.title || `Annexure ${annex.id}`;
     if (annex.id.startsWith('B') && !annex.title) {
-        label = \`Annexure B/\${annex.id.substring(1)}\`;
+        label = `Annexure B/${annex.id.substring(1)}`;
     }
 
     processedItems.push({
@@ -1644,18 +1644,18 @@ function generateDynamicAnnexureSlides(activeAnnexures) {
     filteredSections.forEach(sec => {
       processedItems.push({
         type: 'section',
-        html: \`<tr class="sc"><td colspan="5">\${sec.name}</td></tr>\`,
+        html: `<tr class="sc"><td colspan="5">${sec.name}</td></tr>`,
         score: 1.5
       });
 
       sec.rows.forEach((row, ri) => {
         let html = '';
         if (annex.id === 'A') {
-          html = \`<tr class="dr \${ri % 2 === 0 ? 'wh' : ''}"><td class="nc">\${counter++}</td><td>\${annexureTaskOverrides[\`A_\${row.id}\`] || row.task}</td><td>\${annexureDetailOverrides[\`A_\${row.id}\`] || row.detail}</td><td>\${annexureOverrides[\`A_\${row.id}\`] || row.timing}</td><td>\${annexureNotesOverrides[\`A_\${row.id}\`] || row.notes}</td></tr>\`;
+          html = `<tr class="dr ${ri % 2 === 0 ? 'wh' : ''}"><td class="nc">${counter++}</td><td>${annexureTaskOverrides[`A_${row.id}`] || row.task}</td><td>${annexureDetailOverrides[`A_${row.id}`] || row.detail}</td><td>${annexureOverrides[`A_${row.id}`] || row.timing}</td><td>${annexureNotesOverrides[`A_${row.id}`] || row.notes}</td></tr>`;
         } else if (annex.id === 'B1' || annex.id === 'B2' || annex.id === 'C') {
-          html = \`<tr class="dr \${ri % 2 === 0 ? 'wh' : ''}"><td class="nc">\${counter++}</td><td>\${annexureCatOverrides[\`\${annex.id}_\${row.id}\`] || row.cat || ''}</td><td>\${annexureTaskOverrides[\`\${annex.id}_\${row.id}\`] || row.task}</td><td>\${annexureOverrides[\`\${annex.id}_\${row.id}\`] || row.freq}</td><td>\${annexureNotesOverrides[\`\${annex.id}_\${row.id}\`] || row.notes}</td></tr>\`;
+          html = `<tr class="dr ${ri % 2 === 0 ? 'wh' : ''}"><td class="nc">${counter++}</td><td>${annexureCatOverrides[`${annex.id}_${row.id}`] || row.cat || ''}</td><td>${annexureTaskOverrides[`${annex.id}_${row.id}`] || row.task}</td><td>${annexureOverrides[`${annex.id}_${row.id}`] || row.freq}</td><td>${annexureNotesOverrides[`${annex.id}_${row.id}`] || row.notes}</td></tr>`;
         } else {
-          html = \`<tr class="dr \${ri % 2 === 0 ? 'wh' : ''}"><td class="nc">\${counter++}</td><td>\${annexureTaskOverrides[\`\${annex.id}_\${row.id}\`] || row.task}</td><td>\${annexureDetailOverrides[\`\${annex.id}_\${row.id}\`] || row.detail || ''}</td><td>\${annexureOverrides[\`\${annex.id}_\${row.id}\`] || row.timing || row.freq || ''}</td><td>\${annexureNotesOverrides[\`\${annex.id}_\${row.id}\`] || row.notes || ''}</td></tr>\`;
+          html = `<tr class="dr ${ri % 2 === 0 ? 'wh' : ''}"><td class="nc">${counter++}</td><td>${annexureTaskOverrides[`${annex.id}_${row.id}`] || row.task}</td><td>${annexureDetailOverrides[`${annex.id}_${row.id}`] || row.detail || ''}</td><td>${annexureOverrides[`${annex.id}_${row.id}`] || row.timing || row.freq || ''}</td><td>${annexureNotesOverrides[`${annex.id}_${row.id}`] || row.notes || ''}</td></tr>`;
         }
 
         let rowScore = 1.0;
@@ -1730,19 +1730,19 @@ function generateDynamicAnnexureSlides(activeAnnexures) {
 
     group.forEach((item, index) => {
       if (item.type === 'annex-start' || item.type === 'annex-continued') {
-        if (inTable) bodyHTML += \`</tbody></table>\`;
-        bodyHTML += \`<div class="annex-label" style="margin-top: \${index === 0 ? '6px' : '20px'}">\${item.label}</div>\`;
-        bodyHTML += \`<table class="at">\${item.colgroup}<tbody>\${item.titleHTML}\`;
+        if (inTable) bodyHTML += `</tbody></table>`;
+        bodyHTML += `<div class="annex-label" style="margin-top: ${index === 0 ? '6px' : '20px'}">${item.label}</div>`;
+        bodyHTML += `<table class="at">${item.colgroup}<tbody>${item.titleHTML}`;
         inTable = true;
       } else if (item.type === 'annex-end') {
-        if (inTable) bodyHTML += \`</tbody></table>\`;
+        if (inTable) bodyHTML += `</tbody></table>`;
         inTable = false;
       } else if (item.type === 'section' || item.type === 'row') {
         bodyHTML += item.html;
       }
     });
 
-    if (inTable) bodyHTML += \`</tbody></table>\`;
+    if (inTable) bodyHTML += `</tbody></table>`;
 
     return annexSlideWrap('', bodyHTML);
   });
