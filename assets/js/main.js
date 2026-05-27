@@ -1491,27 +1491,61 @@ All applicable taxes as per GOI will be extra.`;
   }
 
   if (selectedList.length > 0) {
-    slides.push(`
-      <div class="slide">
-        <div class="slide-inner"><div class="slide-content">
-          <div class="slide-header"><img src="assets/img/header.png" style="width:100%;" /></div>
-          <div class="slide-body">
-            <div class="commercials-title">Commercials</div>
-            <div class="intro-plus">+</div>
-            <div class="retainer-label">Retainer Cost</div>
-            <div class="retainer-amount">${costValue}</div>
-            <div class="payment-label">Mode of Payment</div>
-            <div class="payment-value">${paymentValue}</div>
-            <div class="intro-plus">+</div>
-            <div class="tnc-title">Terms and Conditions</div>
-            <ul class="tnc-list">
-              ${tncHTML}
-            </ul>
-          </div>
-          <div class="slide-footer"><img src="assets/img/footer.png" style="width:100%;" /></div>
-        </div></div>
-      </div>
-    `);
+    const tncItems = tncValue.split('\n').filter(line => line.trim());
+    let tncSlides = [];
+    let currentChunk = [];
+    let currentScore = 0;
+    
+    const FIRST_PAGE_LIMIT = 18;
+    const NORMAL_PAGE_LIMIT = 35;
+
+    tncItems.forEach(item => {
+      const itemScore = 1 + Math.floor(item.length / 75);
+      const limit = tncSlides.length === 0 ? FIRST_PAGE_LIMIT : NORMAL_PAGE_LIMIT;
+      
+      if (currentScore + itemScore > limit && currentChunk.length > 0) {
+        tncSlides.push(currentChunk);
+        currentChunk = [];
+        currentScore = 0;
+      }
+      currentChunk.push(item);
+      currentScore += itemScore;
+    });
+    if (currentChunk.length > 0) {
+      tncSlides.push(currentChunk);
+    }
+    if (tncSlides.length === 0) tncSlides = [[]]; // ensure at least one if empty
+
+    tncSlides.forEach((chunk, idx) => {
+      const isFirst = (idx === 0);
+      const chunkHTML = chunk.map(line => `<li>${line}</li>`).join('');
+
+      slides.push(`
+        <div class="slide">
+          <div class="slide-inner"><div class="slide-content">
+            <div class="slide-header"><img src="assets/img/header.png" style="width:100%;" /></div>
+            <div class="slide-body">
+              ${isFirst ? `
+                <div class="commercials-title">Commercials</div>
+                <div class="intro-plus">+</div>
+                <div class="retainer-label">Retainer Cost</div>
+                <div class="retainer-amount">${costValue}</div>
+                <div class="payment-label">Mode of Payment</div>
+                <div class="payment-value">${paymentValue}</div>
+                <div class="intro-plus">+</div>
+                <div class="tnc-title">Terms and Conditions</div>
+              ` : `
+                <div class="tnc-title" style="margin-top: 40px;">Terms and Conditions (continued)</div>
+              `}
+              <ul class="tnc-list">
+                ${chunkHTML}
+              </ul>
+            </div>
+            <div class="slide-footer"><img src="assets/img/footer.png" style="width:100%;" /></div>
+          </div></div>
+        </div>
+      `);
+    });
   }
 
   slides.push(`
