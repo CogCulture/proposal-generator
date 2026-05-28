@@ -774,11 +774,28 @@ body {
 
 .slide-body {
   flex: 1;
-  padding: 0 var(--slide-pad-h);
+  padding: 0 var(--slide-pad-h) 45px var(--slide-pad-h);
   display: flex;
   flex-direction: column;
   overflow: hidden;
   min-height: 0;
+}
+
+.service-slide-desc {
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--black);
+  margin-top: -32px;
+  margin-bottom: 24px;
+  padding-left: 32px;
+  font-style: italic;
+  opacity: 0.8;
+  outline: none;
+}
+
+.service-slide-desc:empty::before {
+  content: attr(placeholder);
+  color: #aaa;
 }
 
 /* SLIDE CONTENT STYLES */

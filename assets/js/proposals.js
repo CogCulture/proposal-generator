@@ -32,6 +32,7 @@ function captureSnapshot() {
     retainerLabel:  document.getElementById('retainerLabelInput')?.value ?? 'Retainer Cost',
     paymentLabel:   document.getElementById('paymentLabelInput')?.value ?? 'Mode of Payment',
     serviceNameOverrides: serviceNameOverrides,
+    serviceDescriptionOverrides: serviceDescriptionOverrides,
     selectedItems:  selectedSer,
     expandedBlocks,
     annexureEnabled,
@@ -81,15 +82,23 @@ function applySnapshot(snap) {
   if (snap.cost         !== undefined) document.getElementById('costInput').value        = snap.cost;
   if (snap.payment      !== undefined) document.getElementById('paymentInput').value     = snap.payment;
 
-  if (snap.retainerLabel !== undefined) {
+  if (snap.retainerLabel) {
     const rInput = document.getElementById('retainerLabelInput');
     if (rInput) rInput.value = snap.retainerLabel;
     retainerLabelOverride = snap.retainerLabel;
+  } else {
+    const rInput = document.getElementById('retainerLabelInput');
+    if (rInput) rInput.value = "Retainer Cost";
+    retainerLabelOverride = "Retainer Cost";
   }
-  if (snap.paymentLabel !== undefined) {
+  if (snap.paymentLabel) {
     const pInput = document.getElementById('paymentLabelInput');
     if (pInput) pInput.value = snap.paymentLabel;
     paymentLabelOverride = snap.paymentLabel;
+  } else {
+    const pInput = document.getElementById('paymentLabelInput');
+    if (pInput) pInput.value = "Mode of Payment";
+    paymentLabelOverride = "Mode of Payment";
   }
 
   if (snap.serviceNameOverrides) {
@@ -97,6 +106,13 @@ function applySnapshot(snap) {
     Object.assign(serviceNameOverrides, snap.serviceNameOverrides);
   } else {
     for (let key in serviceNameOverrides) delete serviceNameOverrides[key];
+  }
+
+  if (snap.serviceDescriptionOverrides) {
+    for (let key in snap.serviceDescriptionOverrides) delete serviceDescriptionOverrides[key];
+    Object.assign(serviceDescriptionOverrides, snap.serviceDescriptionOverrides);
+  } else {
+    for (let key in serviceDescriptionOverrides) delete serviceDescriptionOverrides[key];
   }
 
   // Restore custom services first
@@ -116,7 +132,17 @@ function applySnapshot(snap) {
   // Restore custom service blocks first
   if (snap.serviceBlocks) {
     Object.keys(snap.serviceBlocks).forEach(id => {
-      if (SERVICES[id]) SERVICES[id].blocks = snap.serviceBlocks[id];
+      if (SERVICES[id] && SERVICES[id].blocks) {
+        snap.serviceBlocks[id].forEach((snapBlock, bi) => {
+          if (SERVICES[id].blocks[bi]) {
+            if (snapBlock.title !== undefined) SERVICES[id].blocks[bi].title = snapBlock.title;
+            if (snapBlock.para  !== undefined) SERVICES[id].blocks[bi].para  = snapBlock.para;
+            if (snapBlock.items !== undefined) SERVICES[id].blocks[bi].items = snapBlock.items;
+          } else {
+            SERVICES[id].blocks[bi] = snapBlock;
+          }
+        });
+      }
     });
   }
 

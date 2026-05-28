@@ -1,9 +1,10 @@
 const selectedItems = {};
-let retainerLabelOverride = "";
-let paymentLabelOverride = "";
+let retainerLabelOverride = "Retainer Cost";
+let paymentLabelOverride = "Mode of Payment";
 const serviceNameOverrides = {};
+const serviceDescriptionOverrides = {};
 let SERVICE_ORDER = {
-  'Branding': ['brand_ambassador', 'brand_manual', 'brand_digital_assets', 'brand_communication', 'packaging', 'video_production'],
+  'Branding': ['brand_ambassador', 'brand_campaign', 'brand_manual', 'brand_digital_assets', 'brand_communication', 'packaging', 'video_production'],
   'Digital & Social': ['social_media', 'content_seo', 'SEO_GEO', 'social_listening', 'social_crm', 'analytics_business', 'analytics_reporting', 'google_analytics', 'influencer_marketing', 'performance_marketing', 'orm', 'media_buying', 'ecommerce'],
   'Website': ['website_process', 'website'],
   'Production': ['photoshoot', 'video_shoot'],
@@ -497,6 +498,14 @@ function initPanel() {
         <div class="checkbox"><svg class="checkbox-mark" viewBox="0 0 10 7" fill="none"><polyline points="1,3.5 4,6.5 9,1" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
         <div class="service-info">
           <div class="service-name" contenteditable="true" onclick="event.stopPropagation()" onblur="serviceNameOverrides['${svcId}'] = this.innerText; renderPreview(); scheduleAutoSave()">${serviceNameOverrides[svcId] || svc.name}</div>
+          <div class="service-desc-edit-wrapper" onclick="event.stopPropagation()" style="margin-top: 4px; margin-bottom: 2px;">
+            <input type="text"
+                   class="inline-add-input" 
+                   style="font-size: 11px; padding: 2px 6px; border-style: dotted; color: rgba(255,255,255,0.5); font-family: inherit; font-style: italic;" 
+                   placeholder="Add service description..." 
+                   value="${serviceDescriptionOverrides[svcId] || ''}" 
+                   oninput="serviceDescriptionOverrides['${svcId}'] = this.value; renderPreview(); scheduleAutoSave()">
+          </div>
           <div class="service-sub">${(svc.blocks || []).map(b => b.title || '').filter(t => t).join(', ') || 'Service Details'}</div>
         </div>
         ${isCustom ? `
@@ -1465,6 +1474,7 @@ All applicable taxes as per GOI will be extra.`;
         while (itemsCopy.length > 0) {
           const chunk = itemsCopy.splice(0, CHUNK_SIZE);
           processedContentItems.push({
+            svcId: item.svcId,
             svcName: item.svcName,
             part: part,
             originalTitle: block.title,
@@ -1495,6 +1505,13 @@ All applicable taxes as per GOI will be extra.`;
       let itemScore = 0;
       if (item.svcName !== lastSvcName) {
         itemScore += SVC_TITLE_SCORE;
+        
+        // Add height for service-level description if present
+        const svcDesc = serviceDescriptionOverrides[item.svcId] || "";
+        if (svcDesc) {
+          itemScore += Math.ceil(svcDesc.length / 80) + 2;
+        }
+
         if (currentGroup.length > 0) itemScore += DIVIDER_SCORE;
       }
       itemScore += BLOCK_TITLE_SCORE;
@@ -1525,7 +1542,11 @@ All applicable taxes as per GOI will be extra.`;
       group.forEach((item, i) => {
         if (item.svcName !== globalLastSvc) {
           if (i > 0) bodyHTML += `<div class="plus-divider">+</div>`;
-          bodyHTML += `<div class="service-slide-title" contenteditable="true" onblur="serviceNameOverrides['${item.svcId}'] = this.innerText; initPanel(); renderPreview(); scheduleAutoSave()">${item.svcName}</div>`;
+          const svcDesc = serviceDescriptionOverrides[item.svcId] || "";
+          bodyHTML += `
+            <div class="service-slide-title" contenteditable="true" onblur="serviceNameOverrides['${item.svcId}'] = this.innerText; initPanel(); renderPreview(); scheduleAutoSave()">${item.svcName}</div>
+            <div class="service-slide-desc" contenteditable="true" placeholder="Enter service description..." onblur="serviceDescriptionOverrides['${item.svcId}'] = this.innerText; initPanel(); renderPreview(); scheduleAutoSave()">${svcDesc}</div>
+          `;
           globalLastSvc = item.svcName;
         } else if (i > 0 && item.svcName !== slidePrevSvc) {
           bodyHTML += `<div class="plus-divider">+</div>`;
