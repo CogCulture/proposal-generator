@@ -499,12 +499,10 @@ function initPanel() {
         <div class="service-info">
           <div class="service-name" contenteditable="true" onclick="event.stopPropagation()" onblur="serviceNameOverrides['${svcId}'] = this.innerText; renderPreview(); scheduleAutoSave()">${serviceNameOverrides[svcId] || svc.name}</div>
           <div class="service-desc-edit-wrapper" onclick="event.stopPropagation()" style="margin-top: 4px; margin-bottom: 2px;">
-            <input type="text"
-                   class="inline-add-input" 
-                   style="font-size: 11px; padding: 2px 6px; border-style: dotted; color: rgba(255,255,255,0.5); font-family: inherit; font-style: italic;" 
-                   placeholder="Add service description..." 
-                   value="${serviceDescriptionOverrides[svcId] || ''}" 
-                   oninput="serviceDescriptionOverrides['${svcId}'] = this.value; renderPreview(); scheduleAutoSave()">
+            <textarea class="inline-add-input" 
+                      style="font-size: 11px; padding: 4px 6px; border-style: dotted; color: rgba(255,255,255,0.5); font-family: inherit; font-style: italic; width: 100%; min-height: 36px; background: transparent; outline: none; border-radius: 4px; resize: vertical;" 
+                      placeholder="Add service description..." 
+                      oninput="serviceDescriptionOverrides['${svcId}'] = this.value; renderPreview(); scheduleAutoSave()">${serviceDescriptionOverrides[svcId] || ''}</textarea>
           </div>
           <div class="service-sub">${(svc.blocks || []).map(b => b.title || '').filter(t => t).join(', ') || 'Service Details'}</div>
         </div>

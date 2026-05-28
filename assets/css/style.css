@@ -782,15 +782,14 @@ body {
 }
 
 .service-slide-desc {
-  font-size: 11px;
+  font-size: 13px;
   line-height: 1.5;
   color: var(--black);
   margin-top: -32px;
   margin-bottom: 24px;
   padding-left: 32px;
-  font-style: italic;
-  opacity: 0.8;
   outline: none;
+  white-space: pre-wrap; /* Supports and renders multi-line text breaks! */
 }
 
 .service-slide-desc:empty::before {
