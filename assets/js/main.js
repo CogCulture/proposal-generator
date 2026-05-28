@@ -3,6 +3,7 @@ let SERVICE_ORDER = {
   'Branding': ['brand_ambassador', 'brand_manual', 'brand_digital_assets', 'brand_communication', 'packaging', 'video_production'],
   'Digital & Social': ['social_media', 'content_seo', 'SEO_GEO', 'social_listening', 'social_crm', 'analytics_business', 'analytics_reporting', 'google_analytics', 'influencer_marketing', 'performance_marketing', 'orm', 'media_buying', 'ecommerce'],
   'Website': ['website_process', 'website'],
+  'Production': ['photoshoot', 'video_shoot'],
   'Annexures': ['annexures'],
   'Others': []
 };
@@ -421,7 +422,7 @@ function deselectAllInService(svcId) {
 }
 
 function getOrderedServiceIds() {
-  const sectionOrder = ['Branding', 'Digital & Social', 'Website', 'Annexures', 'Others'];
+  const sectionOrder = ['Branding', 'Digital & Social', 'Website', 'Production', 'Annexures', 'Others'];
   const orderedIds = [];
   sectionOrder.forEach(sec => {
     const list = SERVICE_ORDER[sec] || [];
@@ -461,7 +462,7 @@ function initPanel() {
     SERVICE_ORDER[s] = SERVICE_ORDER[s].filter(id => SERVICES[id]);
   });
 
-  const sectionOrder = ['Branding', 'Digital & Social', 'Website', 'Annexures', 'Others'];
+  const sectionOrder = ['Branding', 'Digital & Social', 'Website', 'Production', 'Annexures', 'Others'];
   sectionOrder.forEach(sectionName => {
     const svcIds = SERVICE_ORDER[sectionName] || [];
     if (svcIds.length === 0 && sectionName === 'Annexures') return;

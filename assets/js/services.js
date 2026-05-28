@@ -169,6 +169,105 @@ const SERVICES = {
       { title: 'Post-production', items: ['Adding VFX and special effects', 'Formatting for different platforms (Reels, YouTube, TVC, LinkedIn)', 'Final output delivery in multiple resolutions'] }
     ]
   },
+  photoshoot: {
+    section: 'Production',
+    name: 'Photoshoot',
+    blocks: [
+      {
+        items: [
+          'Plan a structured shoot flow to maximize production efficiency',
+          'Create premium product visuals aligned with the brand identity',
+          'Capture assets suitable for catalogues, social media, website, marketplace & marketing communication'
+        ]
+      },
+      {
+        title: 'Pre-Production & Planning',
+        items: [
+          'Pre-shoot planning sessions',
+          'Shot list creation & product prioritization',
+          'Moodboard & visual direction alignment',
+          'Shoot style finalization (catalogue / premium / lifestyle / industrial)',
+          'Background & setup planning',
+          'Styling & prop requirement planning (if applicable)',
+          'Production scheduling & shoot coordination'
+        ]
+      },
+      {
+        title: 'Shoot Execution',
+        items: [
+          'Maximum 2-day shoot',
+          'Professional camera, lighting & production setup',
+          'White background product photography',
+          'Close-up/detail shots',
+          'Multiple angle captures per product',
+          'Texture, feature & usage highlighting shots',
+          'Product arrangement & styling support',
+          'On-site production management'
+        ]
+      },
+      {
+        title: 'Post-Production',
+        items: [
+          'Image selection & shortlisting',
+          'Professional image retouching',
+          'Color correction & lighting enhancement',
+          'Background cleanup & refinements',
+          'Web & print optimized exports',
+          'High-resolution final image delivery'
+        ]
+      }
+    ]
+  },
+  video_shoot: {
+    section: 'Production',
+    name: 'Video Shoot',
+    blocks: [
+      {
+        items: [
+          'Develop a professional factory/corporate film showcasing the brand’s manufacturing strength, infrastructure, operational excellence & credibility',
+          'Create a visually engaging narrative that communicates scale, process quality & brand capabilities',
+          'Produce a cinematic yet informative video suitable for presentations, website, social media & business communication'
+        ]
+      },
+      {
+        title: 'Pre-Production & Planning',
+        items: [
+          'Conceptualization & creative direction',
+          'Script writing & narrative development',
+          'Storyboarding & visual flow planning',
+          'Shot list creation',
+          'Shoot schedule & production planning',
+          'Location recce & technical planning',
+          'Coordination for factory floor permissions & production flow'
+        ]
+      },
+      {
+        title: 'Production',
+        items: [
+          'On-site factory shoot execution',
+          'Professional video production setup',
+          'Infrastructure & facility coverage',
+          'Manufacturing process documentation',
+          'Workforce & operational coverage',
+          'Leadership/interview shots (if required)',
+          'Cinematic walkthrough & motion shots',
+          'Multiple camera angle coverage',
+          'Drone footage (if applicable & permitted)'
+        ]
+      },
+      {
+        title: 'Post-Production',
+        items: [
+          'Video editing & sequencing',
+          'Motion transitions & cinematic treatment',
+          'Background music & sound design',
+          'Color grading & visual enhancement',
+          'Versioning for different platforms/formats',
+          'Final master video delivery in digital formats'
+        ]
+      }
+    ]
+  },
   annexures: {
     section: 'Annexures',
     name: 'Annexures Scope',
@@ -176,3 +275,4 @@ const SERVICES = {
     blocks: []
   }
 };
+
