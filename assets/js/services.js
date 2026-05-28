@@ -6,6 +6,22 @@ const SERVICES = {
       { title: '{Ambassador} Integration in the Brand', items: ['Tone of Voice', 'TVC Conceptualisation', 'Photoshoot Direction', 'Packaging Alignment', 'Social Media Integration', 'Retail and BTL', 'D2C and Ecommerce', 'Print and Outdoor', 'Promotion and Offers', 'Influencer Colab', 'Internal and Trade Communication'] }
     ]
   },
+  brand_campaign: {
+    section: 'Branding',
+    name: 'Brand Campaign',
+    blocks: [
+      {
+        items: [
+          'Brand Positioning',
+          'Target Audience Definition & Segmentation',
+          'Competitive Positioning & Differentiation',
+          'Key Brand Pillars & Values',
+          'Messaging Framework & Hierarchy',
+          'Campaign Concept & Key Visual'
+        ]
+      }
+    ]
+  },
   brand_manual: {
     section: 'Branding',
     name: 'Brand Manual',

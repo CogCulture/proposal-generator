@@ -530,6 +530,7 @@ function initPanel() {
                ondragleave="handleBlockDragLeave(event)"
                ondrop="handleBlockDrop(event, '${svcId}', ${bi})"
                onclick="toggleBlock(event,'${svcId}',${bi})">
+            <span class="block-drag-handle" onclick="event.stopPropagation()" style="cursor: grab; margin-right: 4px; color: rgba(255,255,255,0.25); user-select: none; font-size: 11px;">☰</span>
             <div class="block-checkbox">
               <svg class="block-checkbox-mark" viewBox="0 0 10 7" fill="none"><polyline points="1,3.5 4,6.5 9,1" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </div>
@@ -1545,7 +1546,9 @@ All applicable taxes as per GOI will be extra.`;
           const svcDesc = serviceDescriptionOverrides[item.svcId] || "";
           bodyHTML += `
             <div class="service-slide-title" contenteditable="true" onblur="serviceNameOverrides['${item.svcId}'] = this.innerText; initPanel(); renderPreview(); scheduleAutoSave()">${item.svcName}</div>
-            <div class="service-slide-desc" contenteditable="true" placeholder="Enter service description..." onblur="serviceDescriptionOverrides['${item.svcId}'] = this.innerText; initPanel(); renderPreview(); scheduleAutoSave()">${svcDesc}</div>
+            ${svcDesc ? `
+              <div class="service-slide-desc" contenteditable="true" placeholder="Enter service description..." onblur="serviceDescriptionOverrides['${item.svcId}'] = this.innerText; initPanel(); renderPreview(); scheduleAutoSave()">${svcDesc}</div>
+            ` : ''}
           `;
           globalLastSvc = item.svcName;
         } else if (i > 0 && item.svcName !== slidePrevSvc) {
