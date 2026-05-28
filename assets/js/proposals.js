@@ -59,6 +59,17 @@ function captureSnapshot() {
       });
       return snap;
     })(),
+    annexureDataSnap: (() => {
+      const snap = {};
+      Object.keys(ANNEXURE_DATA).forEach(id => {
+        snap[id] = {
+          title: ANNEXURE_DATA[id].title,
+          subtitle: ANNEXURE_DATA[id].subtitle,
+          sections: ANNEXURE_DATA[id].sections
+        };
+      });
+      return snap;
+    })(),
     customServices: customServicesSnap,
     serviceOrder: SERVICE_ORDER,
     // Custom items / blocks users may have added
@@ -168,8 +179,12 @@ function applySnapshot(snap) {
   Object.assign(annexureCatOverrides,    snap.annexureCatOverrides    || {});
   Object.assign(annexureHeadingOverrides,  snap.annexureHeadingOverrides  || {});
 
-  // Restore custom annexures
-  if (snap.customAnnexures) {
+  // Restore all annexure titles and section names
+  if (snap.annexureDataSnap) {
+    Object.keys(snap.annexureDataSnap).forEach(id => {
+      ANNEXURE_DATA[id] = snap.annexureDataSnap[id];
+    });
+  } else if (snap.customAnnexures) {
     Object.keys(snap.customAnnexures).forEach(id => {
       ANNEXURE_DATA[id] = snap.customAnnexures[id];
     });

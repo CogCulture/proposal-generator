@@ -1045,7 +1045,7 @@ function renderAnnexureSidebar() {
     html += `
       <div class="block-row ${isAnnexDisabled ? '' : 'active'}" onclick="toggleAnnexureVisibility(event, '${annex.id}')">
         <div class="block-checkbox"><div class="block-checkbox-mark"></div></div>
-        <span class="block-name">${annex.title || `Annexure ${annex.id}`}</span>
+        <span class="block-name" contenteditable="true" onclick="event.stopPropagation()" onblur="ANNEXURE_DATA['${annex.id}'].title = this.innerText; initPanel(); renderPreview(); scheduleAutoSave()">${annex.title || `Annexure ${annex.id}`}</span>
         ${isCustomAnnex ? `
           <button class="svc-delete-btn" onclick="deleteCustomAnnexure(event, '${annex.id}')" title="Delete Custom Annexure" style="background: none; border: none; cursor: pointer; padding: 3px 5px; border-radius: 4px; color: rgba(255,255,255,0.25); margin-left: auto; margin-right: 6px; transition: all 0.15s; display: flex; align-items: center; justify-content: center; font-size: 11px;">✕</button>
         ` : ''}
@@ -1063,11 +1063,11 @@ function renderAnnexureSidebar() {
                  value="${headingVal}"
                  oninput="updateAnnexureHeadingOverride('${annex.id}', this.value)" />
         </div>
-
+ 
         ${annex.sections.map((sec, si) => {
       const secKey = `${annex.id}-${sec.name}`;
       const isSecOpen = !!expandedAnnexureSections[secKey];
-
+ 
       return `
             <div class="item-row ${disabledAnnexureSections.has(`${annex.id}_${sec.name}`) ? '' : 'active'}" 
                  onclick="toggleAnnexureSectionVisibility(event, '${annex.id}', '${sec.name.replace(/'/g, "\\'")}')">
@@ -1076,7 +1076,7 @@ function renderAnnexureSidebar() {
                   <polyline points="1,3.5 4,6.5 9,1" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
               </div>
-              <span class="item-name">${sec.name}</span>
+              <span class="item-name" contenteditable="true" onclick="event.stopPropagation()" onblur="renameAnnexureSection('${annex.id}', '${sec.name.replace(/'/g, "\\'")}', this.innerText); initPanel(); renderPreview(); scheduleAutoSave()">${sec.name}</span>
               <button class="svc-expand-btn" style="margin-left:auto; background:none; border:none; padding:4px;" onclick="toggleAnnexureSectionExpand(event, '${annex.id}', '${sec.name.replace(/'/g, "\\'")}')">
                 <span class="svc-expand-arrow ${isSecOpen ? 'open' : ''}" style="font-size:8px;">▼</span>
               </button>
@@ -1243,6 +1243,26 @@ function updateAnnexureHeadingOverride(annexId, val) {
   renderPreview();
   scheduleAutoSave();
 }
+
+function renameAnnexureSection(annexId, oldName, newName) {
+  const annex = ANNEXURE_DATA[annexId];
+  if (!annex || !annex.sections) return;
+  const section = annex.sections.find(s => s.name === oldName);
+  if (section) {
+    section.name = newName;
+    const oldKey = `${annexId}_${oldName}`;
+    if (disabledAnnexureSections.has(oldKey)) {
+      disabledAnnexureSections.delete(oldKey);
+      disabledAnnexureSections.add(`${annexId}_${newName}`);
+    }
+    const oldExpandKey = `${annexId}-${oldName}`;
+    if (expandedAnnexureSections[oldExpandKey] !== undefined) {
+      expandedAnnexureSections[`${annexId}-${newName}`] = expandedAnnexureSections[oldExpandKey];
+      delete expandedAnnexureSections[oldExpandKey];
+    }
+  }
+}
+
 
 function getAnnexureDefaultHeading(annexId) {
   if (annexId === 'A') return 'Brand Ambassador — Integrated Plan';
@@ -1814,7 +1834,7 @@ function generateDynamicAnnexureSlides(activeAnnexures) {
     filteredSections.forEach(sec => {
       processedItems.push({
         type: 'section',
-        html: `<tr class="sc"><td colspan="5">${sec.name}</td></tr>`,
+        html: `<tr class="sc"><td colspan="5" contenteditable="true" onblur="renameAnnexureSection('${annex.id}', '${sec.name.replace(/'/g, "\\'")}', this.innerText); initPanel(); renderPreview(); scheduleAutoSave()">${sec.name}</td></tr>`,
         score: 1.5
       });
 
@@ -1901,7 +1921,7 @@ function generateDynamicAnnexureSlides(activeAnnexures) {
     group.forEach((item, index) => {
       if (item.type === 'annex-start' || item.type === 'annex-continued') {
         if (inTable) bodyHTML += `</tbody></table>`;
-        bodyHTML += `<div class="annex-label" style="margin-top: ${index === 0 ? '6px' : '20px'}">${item.label}</div>`;
+        bodyHTML += `<div class="annex-label" contenteditable="true" onblur="ANNEXURE_DATA['${item.id}'].title = this.innerText.replace(/ \\(Continued\\)$/i, ''); initPanel(); renderPreview(); scheduleAutoSave()" style="margin-top: ${index === 0 ? '6px' : '20px'}">${item.label}</div>`;
         bodyHTML += `<table class="at">${item.colgroup}<tbody>${item.titleHTML}`;
         inTable = true;
       } else if (item.type === 'annex-end') {
