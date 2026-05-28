@@ -29,8 +29,8 @@ function captureSnapshot() {
     ambassador:     document.getElementById('ambassadorInput')?.value ?? '',
     cost:           document.getElementById('costInput')?.value ?? '',
     payment:        document.getElementById('paymentInput')?.value ?? '',
-    retainerLabel:  retainerLabelOverride || '',
-    paymentLabel:   paymentLabelOverride || '',
+    retainerLabel:  document.getElementById('retainerLabelInput')?.value ?? 'Retainer Cost',
+    paymentLabel:   document.getElementById('paymentLabelInput')?.value ?? 'Mode of Payment',
     serviceNameOverrides: serviceNameOverrides,
     selectedItems:  selectedSer,
     expandedBlocks,
@@ -65,7 +65,7 @@ function captureSnapshot() {
       const out = {};
       Object.keys(SERVICES).forEach(id => {
         if (SERVICES[id].blocks) {
-          out[id] = SERVICES[id].blocks.map(b => ({ title: b.title, items: [...b.items] }));
+          out[id] = SERVICES[id].blocks.map(b => ({ title: b.title, para: b.para || '', items: [...b.items] }));
         }
       });
       return out;
@@ -81,8 +81,16 @@ function applySnapshot(snap) {
   if (snap.cost         !== undefined) document.getElementById('costInput').value        = snap.cost;
   if (snap.payment      !== undefined) document.getElementById('paymentInput').value     = snap.payment;
 
-  retainerLabelOverride = snap.retainerLabel || '';
-  paymentLabelOverride = snap.paymentLabel || '';
+  if (snap.retainerLabel !== undefined) {
+    const rInput = document.getElementById('retainerLabelInput');
+    if (rInput) rInput.value = snap.retainerLabel;
+    retainerLabelOverride = snap.retainerLabel;
+  }
+  if (snap.paymentLabel !== undefined) {
+    const pInput = document.getElementById('paymentLabelInput');
+    if (pInput) pInput.value = snap.paymentLabel;
+    paymentLabelOverride = snap.paymentLabel;
+  }
 
   if (snap.serviceNameOverrides) {
     for (let key in snap.serviceNameOverrides) delete serviceNameOverrides[key];

@@ -514,11 +514,17 @@ function initPanel() {
         blocksCont.classList.add('dynamic-blocks-cont');
       } else {
         blocksCont.innerHTML = svc.blocks.map((block, bi) => `
-          <div class="block-row" id="block-row-${svcId}-${bi}" onclick="toggleBlock(event,'${svcId}',${bi})">
+          <div class="block-row" id="block-row-${svcId}-${bi}" 
+               draggable="true"
+               ondragstart="handleBlockDragStart(event, '${svcId}', ${bi})"
+               ondragover="handleBlockDragOver(event)"
+               ondragleave="handleBlockDragLeave(event)"
+               ondrop="handleBlockDrop(event, '${svcId}', ${bi})"
+               onclick="toggleBlock(event,'${svcId}',${bi})">
             <div class="block-checkbox">
               <svg class="block-checkbox-mark" viewBox="0 0 10 7" fill="none"><polyline points="1,3.5 4,6.5 9,1" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </div>
-            <span class="block-name">${block.title || (svc.name + ' Sub-Block ' + (bi + 1))}</span>
+            <span class="block-name" contenteditable="true" onclick="event.stopPropagation()" onblur="SERVICES['${svcId}'].blocks[${bi}].title = this.innerText; renderPreview(); scheduleAutoSave()">${block.title || (svc.name + ' Sub-Block ' + (bi + 1))}</span>
             <button class="block-delete-btn" onclick="deleteBlock(event, '${svcId}', ${bi})" title="Delete Sub-heading">✕</button>
             <button class="block-expand-btn" onclick="toggleBlockExpand(event,'${svcId}',${bi})">
               <span class="block-expand-arrow${expandedBlocks[`${svcId}-${bi}`] ? ' open' : ''}" id="block-arrow-${svcId}-${bi}">▼</span>
@@ -542,6 +548,14 @@ function initPanel() {
             <div class="item-add-input-wrapper">
               <span class="add-plus-icon">+</span>
               <input class="inline-add-input" placeholder="Add custom item..." onkeydown="handleItemAdd(event, '${svcId}', ${bi})">
+            </div>
+            <div class="block-para-wrapper" style="padding: 4px 10px 4px 24px; display: flex; flex-direction: column; gap: 4px; margin-bottom: 6px;">
+              <span style="font-size: 9px; color: rgba(255,255,255,0.3); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 500;">Description / Paragraph</span>
+              <textarea class="field-input" 
+                        style="width: 100%; padding: 6px 10px; font-size: 11px; background: rgba(0,0,0,0.2); border: 1px dashed rgba(255,255,255,0.1); border-radius: 4px; color: rgba(255,255,255,0.7); outline: none; font-family: inherit; resize: vertical;" 
+                        rows="2" 
+                        placeholder="Enter paragraph description..." 
+                        oninput="SERVICES['${svcId}'].blocks[${bi}].para = this.value; renderPreview(); scheduleAutoSave()">${block.para || ''}</textarea>
             </div>
           </div>
         `).join('') + `
@@ -856,6 +870,86 @@ function handleItemDrop(e, targetSvcId, targetBi, targetIi) {
   renderPreview();
 }
 
+function handleBlockDragStart(e, svcId, bi) {
+  e.stopPropagation();
+  e.dataTransfer.setData('text/plain', JSON.stringify({ type: 'block', svcId, bi }));
+  e.target.classList.add('dragging');
+}
+
+function handleBlockDragOver(e) {
+  e.preventDefault();
+  const row = e.target.closest('.block-row');
+  if (row) row.classList.add('drag-over');
+}
+
+function handleBlockDragLeave(e) {
+  const row = e.target.closest('.block-row');
+  if (row) row.classList.remove('drag-over');
+}
+
+function handleBlockDrop(e, targetSvcId, targetBi) {
+  e.preventDefault();
+  const row = e.target.closest('.block-row');
+  if (row) row.classList.remove('drag-over');
+
+  const rawData = e.dataTransfer.getData('text/plain');
+  if (!rawData) return;
+
+  let data;
+  try {
+    data = JSON.parse(rawData);
+  } catch (err) {
+    return;
+  }
+
+  if (data.type !== 'block') return;
+
+  const { svcId: sourceSvcId, bi: sourceBi } = data;
+
+  // Only allow reordering blocks within the same service
+  if (sourceSvcId !== targetSvcId || sourceBi === targetBi) return;
+
+  const blocks = SERVICES[targetSvcId].blocks;
+
+  // Reorder the blocks array
+  const [movedBlock] = blocks.splice(sourceBi, 1);
+  blocks.splice(targetBi, 0, movedBlock);
+
+  // We must re-index selectedItems state for this service
+  const oldSelectedItems = { ...selectedItems[targetSvcId] };
+  const newSelectedItems = {};
+
+  const oldExpandedBlocks = { ...expandedBlocks };
+  // remove old targetSvcId-* from expandedBlocks
+  Object.keys(expandedBlocks).forEach(key => {
+    if (key.startsWith(`${targetSvcId}-`)) {
+      delete expandedBlocks[key];
+    }
+  });
+
+  const indexMap = [];
+  for (let i = 0; i < blocks.length + 1; i++) {
+    indexMap.push(i);
+  }
+  const [movedIdx] = indexMap.splice(sourceBi, 1);
+  indexMap.splice(targetBi, 0, movedIdx);
+
+  indexMap.forEach((oldIdx, newIdx) => {
+    if (oldSelectedItems[oldIdx] !== undefined) {
+      newSelectedItems[newIdx] = oldSelectedItems[oldIdx];
+    }
+    if (oldExpandedBlocks[`${targetSvcId}-${oldIdx}`] !== undefined) {
+      expandedBlocks[`${targetSvcId}-${newIdx}`] = oldExpandedBlocks[`${targetSvcId}-${oldIdx}`];
+    }
+  });
+
+  selectedItems[targetSvcId] = newSelectedItems;
+
+  initPanel();
+  renderPreview();
+  scheduleAutoSave();
+}
+
 function refreshServiceUI(svcId) {
   const svc = SERVICES[svcId];
   const svcRow = document.querySelector(`.service-row[data-id="${svcId}"]`);
@@ -1103,36 +1197,43 @@ function toggleAnnexureSectionExpand(event, annexId, secName) {
 function handleAnnexureOverride(key, val) {
   annexureOverrides[key] = val;
   renderPreview();
+  scheduleAutoSave();
 }
 
 function updateAnnexureOverride(annexId, rowId, val) {
   annexureOverrides[`${annexId}_${rowId}`] = val;
   renderPreview();
+  scheduleAutoSave();
 }
 
 function updateAnnexureTaskOverride(annexId, rowId, val) {
   annexureTaskOverrides[`${annexId}_${rowId}`] = val;
   renderPreview();
+  scheduleAutoSave();
 }
 
 function updateAnnexureDetailOverride(annexId, rowId, val) {
   annexureDetailOverrides[`${annexId}_${rowId}`] = val;
   renderPreview();
+  scheduleAutoSave();
 }
 
 function updateAnnexureNotesOverride(annexId, rowId, val) {
   annexureNotesOverrides[`${annexId}_${rowId}`] = val;
   renderPreview();
+  scheduleAutoSave();
 }
 
 function updateAnnexureCatOverride(annexId, rowId, val) {
   annexureCatOverrides[`${annexId}_${rowId}`] = val;
   renderPreview();
+  scheduleAutoSave();
 }
 
 function updateAnnexureHeadingOverride(annexId, val) {
   annexureHeadingOverrides[annexId] = val;
   renderPreview();
+  scheduleAutoSave();
 }
 
 function getAnnexureDefaultHeading(annexId) {
@@ -1301,7 +1402,7 @@ function getActiveBlocksForSlide(svcId) {
   svc.blocks.forEach((block, bi) => {
     const itemSet = selectedItems[svcId]?.[bi];
     const activeItems = (block.items || []).filter((_, ii) => itemSet?.has(ii));
-    const isSelected = (activeItems.length > 0) || (block.items.length === 0 && itemSet && itemSet.has("__selected__"));
+    const isSelected = (activeItems.length > 0) || ((block.items || []).length === 0 && itemSet && itemSet.has("__selected__"));
     if (isSelected) result.push({ ...block, items: activeItems });
   });
   return result;
@@ -1535,9 +1636,9 @@ All applicable taxes as per GOI will be extra.`;
               ${isFirst ? `
                 <div class="commercials-title">Commercials</div>
                 <div class="intro-plus">+</div>
-                <div class="retainer-label" contenteditable="true" onblur="retainerLabelOverride = this.innerText; renderPreview(); scheduleAutoSave()">${rLabel}</div>
+                <div class="retainer-label" contenteditable="true" onblur="retainerLabelOverride = this.innerText; const rInput = document.getElementById('retainerLabelInput'); if (rInput) rInput.value = this.innerText; renderPreview(); scheduleAutoSave()">${rLabel}</div>
                 <div class="retainer-amount" contenteditable="true" onblur="document.getElementById('costInput').value = this.innerText; renderPreview(); scheduleAutoSave()">${costValue}</div>
-                <div class="payment-label" contenteditable="true" onblur="paymentLabelOverride = this.innerText; renderPreview(); scheduleAutoSave()">${pLabel}</div>
+                <div class="payment-label" contenteditable="true" onblur="paymentLabelOverride = this.innerText; const pInput = document.getElementById('paymentLabelInput'); if (pInput) pInput.value = this.innerText; renderPreview(); scheduleAutoSave()">${pLabel}</div>
                 <div class="payment-value" contenteditable="true" onblur="document.getElementById('paymentInput').value = this.innerText; renderPreview(); scheduleAutoSave()">${paymentValue}</div>
                 <div class="intro-plus">+</div>
                 <div class="tnc-title">Terms and Conditions</div>
