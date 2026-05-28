@@ -29,6 +29,8 @@ function captureSnapshot() {
     ambassador:     document.getElementById('ambassadorInput')?.value ?? '',
     cost:           document.getElementById('costInput')?.value ?? '',
     payment:        document.getElementById('paymentInput')?.value ?? '',
+    retainerLabel:  retainerLabelOverride || '',
+    paymentLabel:   paymentLabelOverride || '',
     selectedItems:  selectedSer,
     expandedBlocks,
     annexureEnabled,
@@ -77,6 +79,9 @@ function applySnapshot(snap) {
   if (snap.ambassador   !== undefined) document.getElementById('ambassadorInput').value = snap.ambassador;
   if (snap.cost         !== undefined) document.getElementById('costInput').value        = snap.cost;
   if (snap.payment      !== undefined) document.getElementById('paymentInput').value     = snap.payment;
+
+  retainerLabelOverride = snap.retainerLabel || '';
+  paymentLabelOverride = snap.paymentLabel || '';
 
   // Restore custom services first
   if (snap.customServices) {

@@ -1,4 +1,6 @@
 const selectedItems = {};
+let retainerLabelOverride = "";
+let paymentLabelOverride = "";
 let SERVICE_ORDER = {
   'Branding': ['brand_ambassador', 'brand_manual', 'brand_digital_assets', 'brand_communication', 'packaging', 'video_production'],
   'Digital & Social': ['social_media', 'content_seo', 'SEO_GEO', 'social_listening', 'social_crm', 'analytics_business', 'analytics_reporting', 'google_analytics', 'influencer_marketing', 'performance_marketing', 'orm', 'media_buying', 'ecommerce'],
@@ -1521,6 +1523,9 @@ All applicable taxes as per GOI will be extra.`;
       const isFirst = (idx === 0);
       const chunkHTML = chunk.map(line => `<li>${line}</li>`).join('');
 
+      const rLabel = retainerLabelOverride || "Retainer Cost";
+      const pLabel = paymentLabelOverride || "Mode of Payment";
+
       slides.push(`
         <div class="slide">
           <div class="slide-inner"><div class="slide-content">
@@ -1529,10 +1534,10 @@ All applicable taxes as per GOI will be extra.`;
               ${isFirst ? `
                 <div class="commercials-title">Commercials</div>
                 <div class="intro-plus">+</div>
-                <div class="retainer-label">Retainer Cost</div>
-                <div class="retainer-amount">${costValue}</div>
-                <div class="payment-label">Mode of Payment</div>
-                <div class="payment-value">${paymentValue}</div>
+                <div class="retainer-label" contenteditable="true" onblur="retainerLabelOverride = this.innerText; renderPreview(); scheduleAutoSave()">${rLabel}</div>
+                <div class="retainer-amount" contenteditable="true" onblur="document.getElementById('costInput').value = this.innerText; renderPreview(); scheduleAutoSave()">${costValue}</div>
+                <div class="payment-label" contenteditable="true" onblur="paymentLabelOverride = this.innerText; renderPreview(); scheduleAutoSave()">${pLabel}</div>
+                <div class="payment-value" contenteditable="true" onblur="document.getElementById('paymentInput').value = this.innerText; renderPreview(); scheduleAutoSave()">${paymentValue}</div>
                 <div class="intro-plus">+</div>
                 <div class="tnc-title">Terms and Conditions</div>
               ` : `
