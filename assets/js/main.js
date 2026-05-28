@@ -1,6 +1,7 @@
 const selectedItems = {};
 let retainerLabelOverride = "";
 let paymentLabelOverride = "";
+const serviceNameOverrides = {};
 let SERVICE_ORDER = {
   'Branding': ['brand_ambassador', 'brand_manual', 'brand_digital_assets', 'brand_communication', 'packaging', 'video_production'],
   'Digital & Social': ['social_media', 'content_seo', 'SEO_GEO', 'social_listening', 'social_crm', 'analytics_business', 'analytics_reporting', 'google_analytics', 'influencer_marketing', 'performance_marketing', 'orm', 'media_buying', 'ecommerce'],
@@ -495,7 +496,7 @@ function initPanel() {
       svcRow.innerHTML = `
         <div class="checkbox"><svg class="checkbox-mark" viewBox="0 0 10 7" fill="none"><polyline points="1,3.5 4,6.5 9,1" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
         <div class="service-info">
-          <div class="service-name">${svc.name}</div>
+          <div class="service-name" contenteditable="true" onclick="event.stopPropagation()" onblur="serviceNameOverrides['${svcId}'] = this.innerText; renderPreview(); scheduleAutoSave()">${serviceNameOverrides[svcId] || svc.name}</div>
           <div class="service-sub">${(svc.blocks || []).map(b => b.title || '').filter(t => t).join(', ') || 'Service Details'}</div>
         </div>
         ${isCustom ? `
@@ -1350,7 +1351,7 @@ All applicable taxes as per GOI will be extra.`;
     selectedList.filter(id => id !== 'annexures').forEach((svcId) => {
       const svc = SERVICES[svcId];
       const blocks = getActiveBlocksForSlide(svcId);
-      blocks.forEach(block => allContentItems.push({ svcName: svc.name, block }));
+      blocks.forEach(block => allContentItems.push({ svcId: svcId, svcName: serviceNameOverrides[svcId] || svc.name, block }));
     });
 
     const processedContentItems = [];
@@ -1423,7 +1424,7 @@ All applicable taxes as per GOI will be extra.`;
       group.forEach((item, i) => {
         if (item.svcName !== globalLastSvc) {
           if (i > 0) bodyHTML += `<div class="plus-divider">+</div>`;
-          bodyHTML += `<div class="service-slide-title">${item.svcName}</div>`;
+          bodyHTML += `<div class="service-slide-title" contenteditable="true" onblur="serviceNameOverrides['${item.svcId}'] = this.innerText; initPanel(); renderPreview(); scheduleAutoSave()">${item.svcName}</div>`;
           globalLastSvc = item.svcName;
         } else if (i > 0 && item.svcName !== slidePrevSvc) {
           bodyHTML += `<div class="plus-divider">+</div>`;

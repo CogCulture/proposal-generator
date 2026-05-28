@@ -31,6 +31,7 @@ function captureSnapshot() {
     payment:        document.getElementById('paymentInput')?.value ?? '',
     retainerLabel:  retainerLabelOverride || '',
     paymentLabel:   paymentLabelOverride || '',
+    serviceNameOverrides: serviceNameOverrides,
     selectedItems:  selectedSer,
     expandedBlocks,
     annexureEnabled,
@@ -82,6 +83,13 @@ function applySnapshot(snap) {
 
   retainerLabelOverride = snap.retainerLabel || '';
   paymentLabelOverride = snap.paymentLabel || '';
+
+  if (snap.serviceNameOverrides) {
+    for (let key in snap.serviceNameOverrides) delete serviceNameOverrides[key];
+    Object.assign(serviceNameOverrides, snap.serviceNameOverrides);
+  } else {
+    for (let key in serviceNameOverrides) delete serviceNameOverrides[key];
+  }
 
   // Restore custom services first
   if (snap.customServices) {
