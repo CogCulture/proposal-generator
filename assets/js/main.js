@@ -1247,17 +1247,37 @@ function updateAnnexureHeadingOverride(annexId, val) {
 function renameAnnexureSection(annexId, oldName, newName) {
   const annex = ANNEXURE_DATA[annexId];
   if (!annex || !annex.sections) return;
-  const section = annex.sections.find(s => s.name === oldName);
+
+  const cleanOld = oldName.trim();
+  const cleanNew = newName.trim();
+  if (!cleanNew) return; // Do not allow empty names
+
+  const section = annex.sections.find(s => s.name.trim() === cleanOld);
   if (section) {
-    section.name = newName;
-    const oldKey = `${annexId}_${oldName}`;
+    section.name = cleanNew;
+
+    // Update SERVICE_ANNEXURE_MAP in-memory
+    Object.keys(SERVICE_ANNEXURE_MAP).forEach(svcKey => {
+      const mapping = SERVICE_ANNEXURE_MAP[svcKey];
+      if (mapping && mapping[annexId]) {
+        const arr = mapping[annexId];
+        if (Array.isArray(arr)) {
+          const idx = arr.findIndex(name => name && name.trim() === cleanOld);
+          if (idx !== -1) {
+            arr[idx] = cleanNew;
+          }
+        }
+      }
+    });
+
+    const oldKey = `${annexId}_${cleanOld}`;
     if (disabledAnnexureSections.has(oldKey)) {
       disabledAnnexureSections.delete(oldKey);
-      disabledAnnexureSections.add(`${annexId}_${newName}`);
+      disabledAnnexureSections.add(`${annexId}_${cleanNew}`);
     }
-    const oldExpandKey = `${annexId}-${oldName}`;
+    const oldExpandKey = `${annexId}-${cleanOld}`;
     if (expandedAnnexureSections[oldExpandKey] !== undefined) {
-      expandedAnnexureSections[`${annexId}-${newName}`] = expandedAnnexureSections[oldExpandKey];
+      expandedAnnexureSections[`${annexId}-${cleanNew}`] = expandedAnnexureSections[oldExpandKey];
       delete expandedAnnexureSections[oldExpandKey];
     }
   }

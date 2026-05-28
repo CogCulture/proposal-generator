@@ -72,6 +72,7 @@ function captureSnapshot() {
     })(),
     customServices: customServicesSnap,
     serviceOrder: SERVICE_ORDER,
+    serviceAnnexureMapSnap: SERVICE_ANNEXURE_MAP,
     // Custom items / blocks users may have added
     serviceBlocks: (() => {
       const out = {};
@@ -194,6 +195,11 @@ function applySnapshot(snap) {
   if (snap.customAnnexureIds) {
     CUSTOM_ANNEXURE_IDS.clear();
     snap.customAnnexureIds.forEach(id => CUSTOM_ANNEXURE_IDS.add(id));
+  }
+
+  // Restore the dynamic SERVICE_ANNEXURE_MAP mapping
+  if (snap.serviceAnnexureMapSnap) {
+    Object.assign(SERVICE_ANNEXURE_MAP, snap.serviceAnnexureMapSnap);
   }
 
   initPanel();
