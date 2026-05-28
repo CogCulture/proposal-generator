@@ -774,7 +774,8 @@ body {
 
 .slide-body {
   flex: 1;
-  padding: 0 var(--slide-pad-h) 45px var(--slide-pad-h);
+  padding: 0 var(--slide-pad-h) 0 var(--slide-pad-h);
+  margin-bottom: 45px; /* Margin physical boundary strictly prevents children from overlapping the footer! */
   display: flex;
   flex-direction: column;
   overflow: hidden;

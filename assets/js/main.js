@@ -1498,7 +1498,7 @@ All applicable taxes as per GOI will be extra.`;
     let isFirstSlide = true;
     let lastSvcName = "";
     const ITEM_SCORE = 1.1, BLOCK_TITLE_SCORE = 2.5, SVC_TITLE_SCORE = 3.5, DIVIDER_SCORE = 2;
-    const FIRST_PAGE_LIMIT = 24, NORMAL_PAGE_LIMIT = 34;
+    const FIRST_PAGE_LIMIT = 14, NORMAL_PAGE_LIMIT = 28;
 
     processedContentItems.forEach(item => {
       let itemScore = 0;
