@@ -1723,12 +1723,16 @@ All applicable taxes as per GOI will be extra.`;
     let currentChunk = [];
     let currentScore = 0;
     
-    const FIRST_PAGE_LIMIT = 18;
+    const costLines = costValue.split('\n').length;
+    const paymentLines = paymentValue.split('\n').length;
+    let dynamicFirstPageLimit = 18 - (costLines - 1) * 2.2 - (paymentLines - 1) * 2.2;
+    if (dynamicFirstPageLimit < 4) dynamicFirstPageLimit = 4;
+
     const NORMAL_PAGE_LIMIT = 35;
 
     tncItems.forEach(item => {
       const itemScore = 1 + Math.floor(item.length / 75);
-      const limit = tncSlides.length === 0 ? FIRST_PAGE_LIMIT : NORMAL_PAGE_LIMIT;
+      const limit = tncSlides.length === 0 ? dynamicFirstPageLimit : NORMAL_PAGE_LIMIT;
       
       if (currentScore + itemScore > limit && currentChunk.length > 0) {
         tncSlides.push(currentChunk);

@@ -115,7 +115,7 @@
           </div>
           <div class="field-group" style="flex:1">
             <input class="field-label-input" id="paymentLabelInput" type="text" value="Payment Mode" oninput="paymentLabelOverride = this.value; renderPreview(); scheduleAutoSave()" style="background:transparent; border:none; outline:none; font-family:inherit; font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:0.12em; color:var(--muted); width:100%; padding:0; margin-bottom:6px;">
-            <input class="field-input" id="paymentInput" type="text" placeholder="Monthly Advance" oninput="renderPreview(); scheduleAutoSave()">
+            <textarea class="field-input" id="paymentInput" placeholder="Monthly Advance" oninput="renderPreview(); scheduleAutoSave()" rows="2" style="resize:vertical"></textarea>
           </div>
         </div>
         <div class="field-group">
