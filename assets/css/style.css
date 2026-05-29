@@ -912,6 +912,7 @@ body {
   margin-top: 15px;
   margin-bottom: 16px;
   padding-left: 140px;
+  white-space: pre-wrap;
 }
 
 .payment-label {
@@ -932,6 +933,7 @@ body {
   margin-top: 15px;
   margin-bottom: 12px;
   padding-left: 140px;
+  white-space: pre-wrap;
 }
 
 .tnc-title {
