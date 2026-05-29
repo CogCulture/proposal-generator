@@ -1503,35 +1503,6 @@ All applicable taxes as per GOI will be extra.`;
       blocks.forEach(block => allContentItems.push({ svcId: svcId, svcName: serviceNameOverrides[svcId] || svc.name, block }));
     });
 
-    const processedContentItems = [];
-    allContentItems.forEach(item => {
-      const block = item.block;
-      const CHUNK_SIZE = 15; // smaller chunks for safety, they will merge if on same page
-      if (block.items && block.items.length > CHUNK_SIZE) {
-        const itemsCopy = [...block.items];
-        let part = 1;
-        while (itemsCopy.length > 0) {
-          const chunk = itemsCopy.splice(0, CHUNK_SIZE);
-          processedContentItems.push({
-            svcId: item.svcId,
-            svcName: item.svcName,
-            part: part,
-            originalTitle: block.title,
-            block: {
-              ...block,
-              title: block.title, // keep original title for reference
-              para: part === 1 ? block.para : '',
-              boldItems: part === 1 ? block.boldItems : [],
-              items: chunk
-            }
-          });
-          part++;
-        }
-      } else {
-        processedContentItems.push({ ...item, part: 1, originalTitle: item.block.title });
-      }
-    });
-
     let slideGroups = [];
     let currentGroup = [];
     let currentScore = 0;
@@ -1540,37 +1511,126 @@ All applicable taxes as per GOI will be extra.`;
     const ITEM_SCORE = 1.1, BLOCK_TITLE_SCORE = 2.5, SVC_TITLE_SCORE = 3.5, DIVIDER_SCORE = 2;
     const FIRST_PAGE_LIMIT = 14, NORMAL_PAGE_LIMIT = 28;
 
-    processedContentItems.forEach(item => {
-      let itemScore = 0;
-      if (item.svcName !== lastSvcName) {
-        itemScore += SVC_TITLE_SCORE;
-        
-        // Add height for service-level description if present
-        const svcDesc = serviceDescriptionOverrides[item.svcId] || "";
-        if (svcDesc) {
-          itemScore += Math.ceil(svcDesc.length / 80) + 2;
-        }
+    allContentItems.forEach(currentItem => {
+      const block = currentItem.block;
+      const itemsToPack = [...(block.items || [])];
+      const boldItemsToPack = [...(block.boldItems || [])];
 
-        if (currentGroup.length > 0) itemScore += DIVIDER_SCORE;
+      // Calculate initial block overhead
+      let overhead = 0;
+      if (currentItem.svcName !== lastSvcName) {
+        overhead += SVC_TITLE_SCORE;
+        const svcDesc = serviceDescriptionOverrides[currentItem.svcId] || "";
+        if (svcDesc) overhead += Math.ceil(svcDesc.length / 80) + 2;
+        if (currentGroup.length > 0) overhead += DIVIDER_SCORE;
       }
-      itemScore += BLOCK_TITLE_SCORE;
-      if (item.block.para) itemScore += Math.ceil(item.block.para.length / 80) + 2;
-      if (item.block.items) itemScore += (item.block.items.length * ITEM_SCORE);
-      if (item.block.boldItems) item.block.boldItems.forEach(bi => itemScore += Math.ceil((bi.bold.length + bi.text.length) / 80) * ITEM_SCORE);
+      overhead += BLOCK_TITLE_SCORE;
+      if (block.para) overhead += Math.ceil(block.para.length / 80) + 2;
 
-      const limit = isFirstSlide ? FIRST_PAGE_LIMIT : NORMAL_PAGE_LIMIT;
-      if (currentScore + itemScore > limit && currentGroup.length > 0) {
+      const firstItem = itemsToPack[0] || "";
+      const firstItemScore = firstItem ? ITEM_SCORE : 0;
+
+      let limit = isFirstSlide ? FIRST_PAGE_LIMIT : NORMAL_PAGE_LIMIT;
+
+      // If the block with at least one item doesn't fit on this slide, start a new one
+      if (currentGroup.length > 0 && currentScore + overhead + firstItemScore > limit) {
         slideGroups.push(currentGroup);
         currentGroup = [];
         currentScore = 0;
         isFirstSlide = false;
+        limit = NORMAL_PAGE_LIMIT;
         lastSvcName = "";
+
+        // Recalculate overhead for the new slide
+        overhead = SVC_TITLE_SCORE;
+        const svcDesc = serviceDescriptionOverrides[currentItem.svcId] || "";
+        if (svcDesc) overhead += Math.ceil(svcDesc.length / 80) + 2;
+        overhead += BLOCK_TITLE_SCORE;
+        if (block.para) overhead += Math.ceil(block.para.length / 80) + 2;
       }
-      currentGroup.push(item);
-      currentScore += itemScore;
-      lastSvcName = item.svcName;
+
+      let part = 1;
+      const originalTitle = block.title;
+
+      while (itemsToPack.length > 0 || boldItemsToPack.length > 0) {
+        let currentOverhead = 0;
+        if (part > 1) {
+          if (currentItem.svcName !== lastSvcName) {
+            currentOverhead += SVC_TITLE_SCORE;
+            const svcDesc = serviceDescriptionOverrides[currentItem.svcId] || "";
+            if (svcDesc) currentOverhead += Math.ceil(svcDesc.length / 80) + 2;
+            if (currentGroup.length > 0) currentOverhead += DIVIDER_SCORE;
+          }
+          currentOverhead += BLOCK_TITLE_SCORE;
+        } else {
+          currentOverhead = overhead;
+        }
+
+        let packedItems = [];
+        let packedBoldItems = [];
+        let limit = isFirstSlide ? FIRST_PAGE_LIMIT : NORMAL_PAGE_LIMIT;
+
+        while (itemsToPack.length > 0 || boldItemsToPack.length > 0) {
+          let nextItemScore = 0;
+          if (itemsToPack.length > 0) {
+            nextItemScore = ITEM_SCORE;
+          } else if (boldItemsToPack.length > 0) {
+            const bi = boldItemsToPack[0];
+            nextItemScore = Math.ceil((bi.bold.length + bi.text.length) / 80) * ITEM_SCORE;
+          }
+
+          if (packedItems.length === 0 && packedBoldItems.length === 0) {
+            // Force fit at least one item
+            if (itemsToPack.length > 0) {
+              packedItems.push(itemsToPack.shift());
+            } else {
+              packedBoldItems.push(boldItemsToPack.shift());
+            }
+            currentScore += currentOverhead + nextItemScore;
+            currentOverhead = 0;
+          } else if (currentScore + currentOverhead + nextItemScore <= limit) {
+            if (itemsToPack.length > 0) {
+              packedItems.push(itemsToPack.shift());
+            } else {
+              packedBoldItems.push(boldItemsToPack.shift());
+            }
+            currentScore += currentOverhead + nextItemScore;
+            currentOverhead = 0;
+          } else {
+            break;
+          }
+        }
+
+        currentGroup.push({
+          svcId: currentItem.svcId,
+          svcName: currentItem.svcName,
+          part: part,
+          originalTitle: originalTitle,
+          block: {
+            title: block.title,
+            para: part === 1 ? block.para : '',
+            boldItems: packedBoldItems,
+            items: packedItems
+          }
+        });
+
+        lastSvcName = currentItem.svcName;
+
+        if (itemsToPack.length > 0 || boldItemsToPack.length > 0) {
+          slideGroups.push(currentGroup);
+          currentGroup = [];
+          currentScore = 0;
+          isFirstSlide = false;
+          limit = NORMAL_PAGE_LIMIT;
+          lastSvcName = "";
+          part++;
+        }
+      }
     });
-    if (currentGroup.length > 0) slideGroups.push(currentGroup);
+
+    if (currentGroup.length > 0) {
+      slideGroups.push(currentGroup);
+    }
 
     let globalLastSvc = "";
     slideGroups.forEach((group, gIdx) => {
