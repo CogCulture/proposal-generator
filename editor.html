@@ -98,7 +98,36 @@
   <!-- ═══ MAIN ════════════════════════════════════════════════ -->
   <main class="main">
     <aside class="left-panel">
-      <div class="panel-header">
+      <div class="panel-body" style="padding-top: 16px;">
+        <div class="services-toolbar">
+          <span class="services-label">Services</span>
+          <div class="toolbar-right">
+            <span class="count-badge" id="countBadge">0</span>
+            <button class="select-all-btn" onclick="toggleAll()" id="selectAllBtn">Select all</button>
+          </div>
+        </div>
+        <div id="dynamicServices"></div>
+      </div>
+    </aside>
+
+    <section class="center-panel">
+      <div class="preview-header">
+        <h2 class="preview-title">Live Preview</h2>
+        <div class="preview-meta">
+          <span class="page-count" id="pageCount">0 slides</span>
+        </div>
+      </div>
+      <div class="preview-scroll" id="previewScroll">
+        <div class="empty-state">
+          <div class="empty-state-icon">📋</div>
+          <h3>Start building your proposal</h3>
+          <p>Enter a brand name and select services from the left panel.</p>
+        </div>
+      </div>
+    </section>
+
+    <aside class="right-panel">
+      <div class="panel-header" style="height: 100%; border-bottom: none; overflow-y: auto;">
         <h1 class="panel-header-title">Proposal Details</h1>
         <div class="field-group">
           <label class="field-label" for="brandInput">Brand Name</label>
@@ -129,34 +158,7 @@ Please refer all the Annexures for final deliverables.
 All applicable taxes as per GOI will be extra.</textarea>
         </div>
       </div>
-
-      <div class="panel-body">
-        <div class="services-toolbar">
-          <span class="services-label">Services</span>
-          <div class="toolbar-right">
-            <span class="count-badge" id="countBadge">0</span>
-            <button class="select-all-btn" onclick="toggleAll()" id="selectAllBtn">Select all</button>
-          </div>
-        </div>
-        <div id="dynamicServices"></div>
-      </div>
     </aside>
-
-    <section class="right-panel">
-      <div class="preview-header">
-        <h2 class="preview-title">Live Preview</h2>
-        <div class="preview-meta">
-          <span class="page-count" id="pageCount">0 slides</span>
-        </div>
-      </div>
-      <div class="preview-scroll" id="previewScroll">
-        <div class="empty-state">
-          <div class="empty-state-icon">📋</div>
-          <h3>Start building your proposal</h3>
-          <p>Enter a brand name and select services from the left panel.</p>
-        </div>
-      </div>
-    </section>
   </main>
 
   <!-- Scripts (order matters) -->

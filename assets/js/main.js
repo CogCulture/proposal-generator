@@ -3,14 +3,13 @@ let retainerLabelOverride = "Retainer Cost";
 let paymentLabelOverride = "Mode of Payment";
 const serviceNameOverrides = {};
 const serviceDescriptionOverrides = {};
-let SERVICE_ORDER = {
-  'Branding': ['brand_ambassador', 'brand_campaign', 'brand_manual', 'brand_digital_assets', 'brand_communication', 'packaging', 'video_production'],
-  'Digital & Social': ['social_media', 'content_seo', 'SEO_GEO', 'social_listening', 'social_crm', 'analytics_business', 'analytics_reporting', 'google_analytics', 'influencer_marketing', 'performance_marketing', 'orm', 'media_buying', 'ecommerce'],
-  'Website': ['website_process', 'website'],
-  'Production': ['photoshoot', 'video_shoot'],
-  'Annexures': ['annexures'],
-  'Others': []
-};
+let SERVICE_ORDER = [
+  'brand_ambassador', 'brand_campaign', 'brand_manual', 'brand_digital_assets', 'brand_communication', 'packaging', 'video_production',
+  'social_media', 'content_seo', 'SEO_GEO', 'social_listening', 'social_crm', 'analytics_business', 'analytics_reporting', 'google_analytics', 'influencer_marketing', 'performance_marketing', 'orm', 'media_buying', 'ecommerce',
+  'website_process', 'website',
+  'photoshoot', 'video_shoot',
+  'annexures'
+];
 const annexureOverrides = {};
 const annexureTaskOverrides = {};
 const annexureDetailOverrides = {};
@@ -21,7 +20,7 @@ const CUSTOM_ANNEXURE_IDS = new Set();
 const expandedBlocks = {};
 const expandedServices = {};
 const expandedAnnexureSections = {};
-let annexureEnabled = true;
+let annexureEnabled = false;
 const disabledAnnexures = new Set();
 const disabledAnnexureRows = new Set();
 const disabledAnnexureSections = new Set();
@@ -398,7 +397,9 @@ function anyItemsInService(svcId) {
   if (svcId === 'annexures') {
     return annexureEnabled && getActiveAnnexures().length > 0;
   }
-  return SERVICES[svcId].blocks.some((_, bi) => anyItemsInBlock(svcId, bi));
+  const hasItems = SERVICES[svcId].blocks.some((_, bi) => anyItemsInBlock(svcId, bi));
+  const hasDesc = serviceDescriptionOverrides[svcId] && serviceDescriptionOverrides[svcId].trim() !== '';
+  return hasItems || hasDesc;
 }
 function allItemsInService(svcId) {
   if (svcId === 'annexures') return annexureEnabled;
@@ -426,24 +427,12 @@ function deselectAllInService(svcId) {
 }
 
 function getOrderedServiceIds() {
-  const sectionOrder = ['Branding', 'Digital & Social', 'Website', 'Production', 'Annexures', 'Others'];
-  const orderedIds = [];
-  sectionOrder.forEach(sec => {
-    const list = SERVICE_ORDER[sec] || [];
-    list.forEach(id => {
-      if (SERVICES[id] && !orderedIds.includes(id)) {
-        orderedIds.push(id);
-      }
-    });
-  });
-
-  // Just in case any service is not in SERVICE_ORDER (fallback), append them at the end
+  const orderedIds = [...SERVICE_ORDER];
   Object.keys(SERVICES).forEach(id => {
     if (!orderedIds.includes(id)) {
       orderedIds.push(id);
     }
   });
-
   return orderedIds;
 }
 
@@ -452,150 +441,134 @@ function initPanel() {
   if (!container) return;
   container.innerHTML = '';
 
-  // 1. Sync SERVICE_ORDER with current SERVICES keys
+  // Sync SERVICE_ORDER with current SERVICES keys
   Object.keys(SERVICES).forEach(id => {
-    const s = SERVICES[id].section || 'Others';
-    if (!SERVICE_ORDER[s]) SERVICE_ORDER[s] = [];
-    if (!SERVICE_ORDER[s].includes(id)) {
-      SERVICE_ORDER[s].push(id);
+    if (!SERVICE_ORDER.includes(id)) {
+      SERVICE_ORDER.push(id);
     }
   });
 
-  // 2. Remove deleted keys from SERVICE_ORDER
-  Object.keys(SERVICE_ORDER).forEach(s => {
-    SERVICE_ORDER[s] = SERVICE_ORDER[s].filter(id => SERVICES[id]);
-  });
+  // Remove deleted keys from SERVICE_ORDER
+  SERVICE_ORDER = SERVICE_ORDER.filter(id => SERVICES[id]);
 
-  const sectionOrder = ['Branding', 'Digital & Social', 'Website', 'Production', 'Annexures', 'Others'];
-  sectionOrder.forEach(sectionName => {
-    const svcIds = SERVICE_ORDER[sectionName] || [];
-    if (svcIds.length === 0 && sectionName === 'Annexures') return;
+  const svcIds = SERVICE_ORDER;
 
-    const sectionDiv = document.createElement('div');
-    sectionDiv.className = 'section-group';
-    sectionDiv.innerHTML = `<div class="section-label">${sectionName}</div>`;
+  svcIds.forEach(svcId => {
+    const svc = SERVICES[svcId];
+    const svcRow = document.createElement('div');
+    svcRow.className = 'service-row';
+    svcRow.dataset.id = svcId;
 
-    svcIds.forEach(svcId => {
-      const svc = SERVICES[svcId];
-      const svcRow = document.createElement('div');
-      svcRow.className = 'service-row';
-      svcRow.dataset.id = svcId;
+    if (svcId !== 'annexures') {
+      svcRow.setAttribute('draggable', 'true');
+      svcRow.setAttribute('ondragstart', `handleServiceDragStart(event, '${svcId}')`);
+      svcRow.setAttribute('ondragover', `handleServiceDragOver(event)`);
+      svcRow.setAttribute('ondragleave', `handleServiceDragLeave(event)`);
+      svcRow.setAttribute('ondrop', `handleServiceDrop(event, '${svcId}')`);
+    }
 
-      // Make it draggable (if not annexures)
-      if (sectionName !== 'Annexures') {
-        svcRow.setAttribute('draggable', 'true');
-        svcRow.setAttribute('ondragstart', `handleServiceDragStart(event, '${svcId}')`);
-        svcRow.setAttribute('ondragover', `handleServiceDragOver(event)`);
-        svcRow.setAttribute('ondragleave', `handleServiceDragLeave(event)`);
-        svcRow.setAttribute('ondrop', `handleServiceDrop(event, '${svcId}')`);
-      }
+    svcRow.onclick = (e) => toggleService(e, svcId);
 
-      svcRow.onclick = (e) => toggleService(e, svcId);
+    const isCustom = svcId.startsWith('custom_');
 
-      const isCustom = svcId.startsWith('custom_');
-
-      svcRow.innerHTML = `
-        <div class="checkbox"><svg class="checkbox-mark" viewBox="0 0 10 7" fill="none"><polyline points="1,3.5 4,6.5 9,1" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-        <div class="service-info">
-          <div class="service-name" contenteditable="true" onclick="event.stopPropagation()" onblur="serviceNameOverrides['${svcId}'] = this.innerText; renderPreview(); scheduleAutoSave()">${serviceNameOverrides[svcId] || svc.name}</div>
-          <div class="service-desc-edit-wrapper" onclick="event.stopPropagation()" style="margin-top: 4px; margin-bottom: 2px;">
-            <textarea class="inline-add-input" 
-                      style="font-size: 11px; padding: 4px 6px; border-style: dotted; color: rgba(255,255,255,0.5); font-family: inherit; font-style: italic; width: 100%; min-height: 36px; background: transparent; outline: none; border-radius: 4px; resize: vertical;" 
-                      placeholder="Add service description..." 
-                      oninput="serviceDescriptionOverrides['${svcId}'] = this.value; renderPreview(); scheduleAutoSave()">${serviceDescriptionOverrides[svcId] || ''}</textarea>
-          </div>
-          <div class="service-sub">${(svc.blocks || []).map(b => b.title || '').filter(t => t).join(', ') || 'Service Details'}</div>
+    svcRow.innerHTML = `
+      <div class="checkbox"><svg class="checkbox-mark" viewBox="0 0 10 7" fill="none"><polyline points="1,3.5 4,6.5 9,1" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="service-info">
+        <div class="service-name" contenteditable="true" onclick="event.stopPropagation()" onblur="serviceNameOverrides['${svcId}'] = this.innerText; renderPreview(); scheduleAutoSave()">${serviceNameOverrides[svcId] || svc.name}</div>
+        <div class="service-desc-edit-wrapper" onclick="event.stopPropagation()" style="margin-top: 4px; margin-bottom: 2px;">
+          <textarea class="inline-add-input" 
+                    style="font-size: 11px; padding: 4px 6px; border-style: dotted; color: rgba(255,255,255,0.5); font-family: inherit; font-style: italic; width: 100%; min-height: 36px; background: transparent; outline: none; border-radius: 4px; resize: vertical;" 
+                    placeholder="Add service description..." 
+                    oninput="serviceDescriptionOverrides['${svcId}'] = this.value; renderPreview(); scheduleAutoSave()">${serviceDescriptionOverrides[svcId] || ''}</textarea>
         </div>
-        ${isCustom ? `
-          <button class="svc-delete-btn" onclick="deleteService(event, '${svcId}')" title="Delete Service" style="background: none; border: none; cursor: pointer; padding: 3px 5px; border-radius: 4px; color: rgba(255,255,255,0.25); margin-left: 6px; transition: all 0.15s; display: flex; align-items: center; justify-content: center; font-size: 11px;">✕</button>
-        ` : ''}
-        <button class="svc-expand-btn" onclick="toggleExpand(event,'${svcId}')"><span class="svc-expand-arrow${expandedServices[svcId] ? ' open' : ''}" id="svc-arrow-${svcId}">▼</span></button>
-      `;
-      sectionDiv.appendChild(svcRow);
+        <div class="service-sub">${(svc.blocks || []).map(b => b.title || '').filter(t => t).join(', ') || 'Service Details'}</div>
+      </div>
+      ${isCustom ? `
+        <button class="svc-delete-btn" onclick="deleteService(event, '${svcId}')" title="Delete Service" style="background: none; border: none; cursor: pointer; padding: 3px 5px; border-radius: 4px; color: rgba(255,255,255,0.25); margin-left: 6px; transition: all 0.15s; display: flex; align-items: center; justify-content: center; font-size: 11px;">✕</button>
+      ` : ''}
+      <button class="svc-expand-btn" onclick="toggleExpand(event,'${svcId}')"><span class="svc-expand-arrow${expandedServices[svcId] ? ' open' : ''}" id="svc-arrow-${svcId}">▼</span></button>
+    `;
+    container.appendChild(svcRow);
 
-      const blocksCont = document.createElement('div');
-      blocksCont.className = 'blocks-container' + (expandedServices[svcId] ? ' open' : '');
-      blocksCont.id = 'blocks-' + svcId;
+    const blocksCont = document.createElement('div');
+    blocksCont.className = 'blocks-container' + (expandedServices[svcId] ? ' open' : '');
+    blocksCont.id = 'blocks-' + svcId;
 
-      if (svc.dynamic) {
-        blocksCont.classList.add('dynamic-blocks-cont');
-      } else {
-        blocksCont.innerHTML = svc.blocks.map((block, bi) => `
-          <div class="block-row" id="block-row-${svcId}-${bi}" 
-               draggable="true"
-               ondragstart="handleBlockDragStart(event, '${svcId}', ${bi})"
-               ondragover="handleBlockDragOver(event)"
-               ondragleave="handleBlockDragLeave(event)"
-               ondrop="handleBlockDrop(event, '${svcId}', ${bi})"
-               onclick="toggleBlock(event,'${svcId}',${bi})">
-            <span class="block-drag-handle" onclick="event.stopPropagation()" style="cursor: grab; margin-right: 4px; color: rgba(255,255,255,0.25); user-select: none; font-size: 11px;">☰</span>
-            <div class="block-checkbox">
-              <svg class="block-checkbox-mark" viewBox="0 0 10 7" fill="none"><polyline points="1,3.5 4,6.5 9,1" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            </div>
-            <span class="block-name" contenteditable="true" onclick="event.stopPropagation()" onblur="SERVICES['${svcId}'].blocks[${bi}].title = this.innerText; renderPreview(); scheduleAutoSave()">${block.title || (svc.name + ' Sub-Block ' + (bi + 1))}</span>
-            <button class="block-delete-btn" onclick="deleteBlock(event, '${svcId}', ${bi})" title="Delete Sub-heading">✕</button>
-            <button class="block-expand-btn" onclick="toggleBlockExpand(event,'${svcId}',${bi})">
-              <span class="block-expand-arrow${expandedBlocks[`${svcId}-${bi}`] ? ' open' : ''}" id="block-arrow-${svcId}-${bi}">▼</span>
-            </button>
+    if (svc.dynamic) {
+      blocksCont.classList.add('dynamic-blocks-cont');
+    } else {
+      blocksCont.innerHTML = svc.blocks.map((block, bi) => `
+        <div class="block-row" id="block-row-${svcId}-${bi}" 
+             draggable="true"
+             ondragstart="handleBlockDragStart(event, '${svcId}', ${bi})"
+             ondragover="handleBlockDragOver(event)"
+             ondragleave="handleBlockDragLeave(event)"
+             ondrop="handleBlockDrop(event, '${svcId}', ${bi})"
+             onclick="toggleBlock(event,'${svcId}',${bi})">
+          <span class="block-drag-handle" onclick="event.stopPropagation()" style="cursor: grab; margin-right: 4px; color: rgba(255,255,255,0.25); user-select: none; font-size: 11px;">☰</span>
+          <div class="block-checkbox">
+            <svg class="block-checkbox-mark" viewBox="0 0 10 7" fill="none"><polyline points="1,3.5 4,6.5 9,1" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </div>
-          <div class="items-container${expandedBlocks[`${svcId}-${bi}`] ? ' open' : ''}" id="items-${svcId}-${bi}">
-            ${(block.items || []).map((item, ii) => `
-              <div class="item-row" id="item-row-${svcId}-${bi}-${ii}" 
-                   draggable="true"
-                   ondragstart="handleItemDragStart(event, '${svcId}', ${bi}, ${ii})"
-                   ondragover="handleItemDragOver(event)"
-                   ondragleave="handleItemDragLeave(event)"
-                   ondrop="handleItemDrop(event, '${svcId}', ${bi}, ${ii})"
-                   onclick="toggleItem(event,'${svcId}',${bi},${ii})">
-                <div class="item-checkbox">
-                  <svg class="item-checkbox-mark" viewBox="0 0 10 7" fill="none"><polyline points="1,3.5 4,6.5 9,1" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                </div>
-                <span class="item-name">${item}</span>
+          <span class="block-name" contenteditable="true" onclick="event.stopPropagation()" onblur="SERVICES['${svcId}'].blocks[${bi}].title = this.innerText; renderPreview(); scheduleAutoSave()">${block.title || (svc.name + ' Sub-Block ' + (bi + 1))}</span>
+          <button class="block-delete-btn" onclick="deleteBlock(event, '${svcId}', ${bi})" title="Delete Sub-heading">✕</button>
+          <button class="block-expand-btn" onclick="toggleBlockExpand(event,'${svcId}',${bi})">
+            <span class="block-expand-arrow${expandedBlocks[`${svcId}-${bi}`] ? ' open' : ''}" id="block-arrow-${svcId}-${bi}">▼</span>
+          </button>
+        </div>
+        <div class="items-container${expandedBlocks[`${svcId}-${bi}`] ? ' open' : ''}" id="items-${svcId}-${bi}">
+          ${(block.items || []).map((item, ii) => `
+            <div class="item-row" id="item-row-${svcId}-${bi}-${ii}" 
+                 draggable="true"
+                 ondragstart="handleItemDragStart(event, '${svcId}', ${bi}, ${ii})"
+                 ondragover="handleItemDragOver(event)"
+                 ondragleave="handleItemDragLeave(event)"
+                 ondrop="handleItemDrop(event, '${svcId}', ${bi}, ${ii})"
+                 onclick="toggleItem(event,'${svcId}',${bi},${ii})">
+              <div class="item-checkbox">
+                <svg class="item-checkbox-mark" viewBox="0 0 10 7" fill="none"><polyline points="1,3.5 4,6.5 9,1" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
               </div>
-            `).join('')}
-            <div class="item-add-input-wrapper">
-              <span class="add-plus-icon">+</span>
-              <input class="inline-add-input" placeholder="Add custom item..." onkeydown="handleItemAdd(event, '${svcId}', ${bi})">
+              <span class="item-name" contenteditable="true" onclick="event.stopPropagation()" onblur="SERVICES['${svcId}'].blocks[${bi}].items[${ii}] = this.innerHTML; renderPreview(); scheduleAutoSave()">${item}</span>
             </div>
-            <div class="block-para-wrapper" style="padding: 4px 10px 4px 24px; display: flex; flex-direction: column; gap: 4px; margin-bottom: 6px;">
-              <span style="font-size: 9px; color: rgba(255,255,255,0.3); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 500;">Description / Paragraph</span>
-              <textarea class="field-input" 
-                        style="width: 100%; padding: 6px 10px; font-size: 11px; background: rgba(0,0,0,0.2); border: 1px dashed rgba(255,255,255,0.1); border-radius: 4px; color: rgba(255,255,255,0.7); outline: none; font-family: inherit; resize: vertical;" 
-                        rows="2" 
-                        placeholder="Enter paragraph description..." 
-                        oninput="SERVICES['${svcId}'].blocks[${bi}].para = this.value; renderPreview(); scheduleAutoSave()">${block.para || ''}</textarea>
-            </div>
-          </div>
-        `).join('') + `
-          <div class="block-add-input-wrapper">
+          `).join('')}
+          <div class="item-add-input-wrapper">
             <span class="add-plus-icon">+</span>
-            <input class="inline-add-input" style="font-weight:500;" placeholder="Add sub-heading..." onkeydown="handleBlockAdd(event, '${svcId}')">
+            <input class="inline-add-input" placeholder="Add custom item..." onkeydown="handleItemAdd(event, '${svcId}', ${bi})">
           </div>
-        `;
-      }
-      sectionDiv.appendChild(blocksCont);
-    });
-
-    if (sectionName !== 'Annexures') {
-      const addServiceWrapper = document.createElement('div');
-      addServiceWrapper.className = 'service-add-input-wrapper';
-      addServiceWrapper.style.padding = '6px 22px 12px';
-      addServiceWrapper.style.display = 'flex';
-      addServiceWrapper.style.alignItems = 'center';
-      addServiceWrapper.style.gap = '8px';
-      addServiceWrapper.innerHTML = `
-        <span class="add-plus-icon" style="color: rgba(255,255,255,0.3); font-size: 14px;">+</span>
-        <input class="inline-add-input" style="font-weight: 500;" placeholder="Add service to ${sectionName}..." onkeydown="handleServiceAdd(event, '${sectionName}')">
+          <div class="block-para-wrapper" style="padding: 4px 10px 4px 24px; display: flex; flex-direction: column; gap: 4px; margin-bottom: 6px;">
+            <span style="font-size: 9px; color: rgba(255,255,255,0.3); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 500;">Description / Paragraph</span>
+            <textarea class="field-input" 
+                      style="width: 100%; padding: 6px 10px; font-size: 11px; background: rgba(0,0,0,0.2); border: 1px dashed rgba(255,255,255,0.1); border-radius: 4px; color: rgba(255,255,255,0.7); outline: none; font-family: inherit; resize: vertical;" 
+                      rows="2" 
+                      placeholder="Enter paragraph description..." 
+                      oninput="SERVICES['${svcId}'].blocks[${bi}].para = this.value; renderPreview(); scheduleAutoSave()">${block.para || ''}</textarea>
+          </div>
+        </div>
+      `).join('') + `
+        <div class="block-add-input-wrapper">
+          <span class="add-plus-icon">+</span>
+          <input class="inline-add-input" style="font-weight:500;" placeholder="Add sub-heading..." onkeydown="handleBlockAdd(event, '${svcId}')">
+        </div>
       `;
-      sectionDiv.appendChild(addServiceWrapper);
     }
-
-    container.appendChild(sectionDiv);
+    container.appendChild(blocksCont);
   });
+
+  const addServiceWrapper = document.createElement('div');
+  addServiceWrapper.className = 'service-add-input-wrapper';
+  addServiceWrapper.style.padding = '12px 22px';
+  addServiceWrapper.style.display = 'flex';
+  addServiceWrapper.style.alignItems = 'center';
+  addServiceWrapper.style.gap = '8px';
+  addServiceWrapper.innerHTML = `
+    <span class="add-plus-icon" style="color: rgba(255,255,255,0.3); font-size: 14px;">+</span>
+    <input class="inline-add-input" style="font-weight: 500;" placeholder="Add new service..." onkeydown="handleServiceAdd(event)">
+  `;
+  container.appendChild(addServiceWrapper);
+
   refreshAllUI();
 }
 
-function handleServiceAdd(e, sectionName) {
+function handleServiceAdd(e) {
   if (e.key === 'Enter') {
     const val = e.target.value.trim();
     if (!val) return;
@@ -603,13 +576,12 @@ function handleServiceAdd(e, sectionName) {
     const svcId = 'custom_service_' + Date.now();
 
     SERVICES[svcId] = {
-      section: sectionName,
+      section: 'Others',
       name: val,
       blocks: []
     };
 
-    if (!SERVICE_ORDER[sectionName]) SERVICE_ORDER[sectionName] = [];
-    SERVICE_ORDER[sectionName].push(svcId);
+    SERVICE_ORDER.push(svcId);
 
     e.target.value = '';
     initPanel();
@@ -680,16 +652,12 @@ function handleServiceDrop(e, targetSvcId) {
   const targetSvc = SERVICES[targetSvcId];
   if (!sourceSvc || !targetSvc) return;
 
-  if (sourceSvc.section !== targetSvc.section) return;
-
-  const sectionName = sourceSvc.section;
-  const list = SERVICE_ORDER[sectionName];
-  const sourceIdx = list.indexOf(sourceSvcId);
-  const targetIdx = list.indexOf(targetSvcId);
+  const sourceIdx = SERVICE_ORDER.indexOf(sourceSvcId);
+  const targetIdx = SERVICE_ORDER.indexOf(targetSvcId);
 
   if (sourceIdx !== -1 && targetIdx !== -1) {
-    const [movedSvcId] = list.splice(sourceIdx, 1);
-    list.splice(targetIdx, 0, movedSvcId);
+    const [movedSvcId] = SERVICE_ORDER.splice(sourceIdx, 1);
+    SERVICE_ORDER.splice(targetIdx, 0, movedSvcId);
 
     initPanel();
     renderPreview();
@@ -1420,7 +1388,7 @@ function clearAll() {
   if (cInput) cInput.value = '';
   if (pInput) pInput.value = '';
   if (aInput) aInput.value = '';
-  annexureEnabled = true;
+  annexureEnabled = false;
   disabledAnnexures.clear();
   disabledAnnexureRows.clear();
   disabledAnnexureSections.clear();
@@ -1450,7 +1418,8 @@ function getActiveBlocksForSlide(svcId) {
   svc.blocks.forEach((block, bi) => {
     const itemSet = selectedItems[svcId]?.[bi];
     const activeItems = (block.items || []).filter((_, ii) => itemSet?.has(ii));
-    const isSelected = (activeItems.length > 0) || ((block.items || []).length === 0 && itemSet && itemSet.has("__selected__"));
+    const hasPara = block.para && block.para.trim() !== '';
+    const isSelected = (activeItems.length > 0) || ((block.items || []).length === 0 && itemSet && itemSet.has("__selected__")) || hasPara;
     if (isSelected) result.push({ ...block, items: activeItems });
   });
   return result;
@@ -1499,7 +1468,10 @@ All applicable taxes as per GOI will be extra.`;
     const allContentItems = [];
     selectedList.filter(id => id !== 'annexures').forEach((svcId) => {
       const svc = SERVICES[svcId];
-      const blocks = getActiveBlocksForSlide(svcId);
+      let blocks = getActiveBlocksForSlide(svcId);
+      if (blocks.length === 0) {
+        blocks.push({ title: '', items: [], dummy: true });
+      }
       blocks.forEach(block => allContentItems.push({ svcId: svcId, svcName: serviceNameOverrides[svcId] || svc.name, block }));
     });
 
@@ -1552,6 +1524,32 @@ All applicable taxes as per GOI will be extra.`;
       let part = 1;
       const originalTitle = block.title;
 
+      if (itemsToPack.length === 0 && boldItemsToPack.length === 0) {
+        if (currentGroup.length > 0 && currentScore + overhead > limit) {
+          slideGroups.push(currentGroup);
+          currentGroup = [];
+          currentScore = 0;
+          isFirstSlide = false;
+          limit = NORMAL_PAGE_LIMIT;
+          lastSvcName = "";
+          overhead = SVC_TITLE_SCORE;
+          const svcDesc = serviceDescriptionOverrides[currentItem.svcId] || "";
+          if (svcDesc) overhead += Math.ceil(svcDesc.length / 80) + 2;
+          overhead += BLOCK_TITLE_SCORE;
+          if (block.para) overhead += Math.ceil(block.para.length / 80) + 2;
+        }
+        currentGroup.push({
+          svcId: currentItem.svcId,
+          svcName: currentItem.svcName,
+          part: 1,
+          originalTitle: originalTitle,
+          block: { title: block.title, para: block.para, boldItems: [], items: [], dummy: block.dummy }
+        });
+        lastSvcName = currentItem.svcName;
+        currentScore += overhead;
+        return; // continue to next currentItem
+      }
+
       while (itemsToPack.length > 0 || boldItemsToPack.length > 0) {
         let currentOverhead = 0;
         if (part > 1) {
@@ -1573,7 +1571,9 @@ All applicable taxes as per GOI will be extra.`;
         while (itemsToPack.length > 0 || boldItemsToPack.length > 0) {
           let nextItemScore = 0;
           if (itemsToPack.length > 0) {
-            nextItemScore = ITEM_SCORE;
+            const it = itemsToPack[0];
+            const textLen = it.replace(/<[^>]*>?/gm, '').length;
+            nextItemScore = Math.max(1, Math.ceil(textLen / 80)) * ITEM_SCORE;
           } else if (boldItemsToPack.length > 0) {
             const bi = boldItemsToPack[0];
             nextItemScore = Math.ceil((bi.bold.length + bi.text.length) / 80) * ITEM_SCORE;
@@ -1680,12 +1680,14 @@ All applicable taxes as per GOI will be extra.`;
         if (block.items && block.items.length) {
           blockBodyHTML += `<ul class="service-block-items">` + block.items.map(it => `<li>${it.replace(/{Ambassador}/g, ambassadorName)}</li>`).join('') + `</ul>`;
         }
-        bodyHTML += `
-          <div class="service-block${displayTitle ? '' : ' service-block--no-title'}${isContinuationSameSlide ? ' service-block--continuation' : ''}">
-            ${displayTitle ? `<div class="service-block-title">${displayTitle}</div>` : ''}
-            ${blockBodyHTML}
-          </div>
-        `;
+        if (!block.dummy) {
+          bodyHTML += `
+            <div class="service-block${displayTitle ? '' : ' service-block--no-title'}${isContinuationSameSlide ? ' service-block--continuation' : ''}">
+              ${displayTitle ? `<div class="service-block-title">${displayTitle}</div>` : ''}
+              ${blockBodyHTML}
+            </div>
+          `;
+        }
       });
 
       slides.push(`
@@ -1800,6 +1802,10 @@ async function generatePDF() {
   const active = Object.keys(selectedItems).some(k => Object.keys(selectedItems[k]).some(b => selectedItems[k][b].size > 0));
   if (!active && !document.getElementById('brandInput')?.value.trim()) { alert('Add content first.'); return; }
 
+  // Temporarily reset zoom to 1 so html2canvas captures full resolution
+  const originalZoom = document.body.style.zoom;
+  document.body.style.zoom = '1';
+
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation: 'portrait', unit: 'px', format: [720, 1018] });
   const slides = document.querySelectorAll('.slide');
@@ -1824,6 +1830,9 @@ async function generatePDF() {
   const brand = document.getElementById('brandInput')?.value.trim() || 'Proposal';
   doc.save(`CogCulture_${brand.replace(/\s+/g, '_')}.pdf`);
   if (overlay) overlay.classList.remove('active');
+  
+  // Restore zoom
+  document.body.style.zoom = originalZoom;
 }
 
 document.addEventListener('DOMContentLoaded', () => {
