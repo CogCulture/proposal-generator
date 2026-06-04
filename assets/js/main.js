@@ -1,4 +1,13 @@
 const selectedItems = {};
+let isDragging = false;
+window.addEventListener('dragstart', () => {
+  isDragging = true;
+});
+window.addEventListener('dragend', () => {
+  setTimeout(() => {
+    isDragging = false;
+  }, 50);
+});
 let retainerLabelOverride = "Retainer Cost";
 let paymentLabelOverride = "Mode of Payment";
 const serviceNameOverrides = {};
@@ -766,6 +775,7 @@ function toggleBlockExpand(e, svcId, bi) {
 }
 
 function toggleService(e, svcId) {
+  if (isDragging) return;
   if (svcId === 'annexures') {
     annexureEnabled = !annexureEnabled;
   } else {
@@ -779,6 +789,7 @@ function toggleService(e, svcId) {
 
 function toggleBlock(e, svcId, bi) {
   e.stopPropagation();
+  if (isDragging) return;
   if (allItemsInBlock(svcId, bi)) deselectAllInBlock(svcId, bi);
   else selectAllInBlock(svcId, bi);
   refreshServiceUI(svcId);
@@ -788,6 +799,7 @@ function toggleBlock(e, svcId, bi) {
 
 function toggleItem(e, svcId, bi, ii) {
   e.stopPropagation();
+  if (isDragging) return;
   ensureState(svcId, bi);
   if (selectedItems[svcId][bi].has(ii)) selectedItems[svcId][bi].delete(ii);
   else selectedItems[svcId][bi].add(ii);
