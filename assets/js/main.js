@@ -1,13 +1,26 @@
 const selectedItems = {};
 let isDragging = false;
+let blockNextClick = false;
+
 window.addEventListener('dragstart', () => {
   isDragging = true;
+  blockNextClick = true;
 }, true);
+
 window.addEventListener('dragend', () => {
+  isDragging = false;
   setTimeout(() => {
-    isDragging = false;
-  }, 50);
+    blockNextClick = false;
+  }, 150);
 }, true);
+
+window.addEventListener('click', (e) => {
+  if (blockNextClick) {
+    e.stopPropagation();
+    e.preventDefault();
+  }
+}, true);
+
 let retainerLabelOverride = "Retainer Cost";
 let paymentLabelOverride = "Mode of Payment";
 const serviceNameOverrides = {};
@@ -387,28 +400,49 @@ function getActiveAnnexures() {
 }
 
 
+function anyItemsInBlock(svcId, blockIdx) {
+  const block = SERVICES[svcId].blocks[blockIdx];
+  const set = selectedItems[svcId]?.[blockIdx];
+  if (!set || set.size === 0) return false;
+  
+  if (block.items.length === 0) {
+    return set.has("__selected__");
+  }
+  
+  // For blocks with items, at least one valid index must exist
+  let hasValidItem = false;
+  set.forEach(item => {
+    if (item !== "__selected__" && !isNaN(item)) {
+      hasValidItem = true;
+    }
+  });
+  return hasValidItem;
+}
+
 function allItemsInBlock(svcId, blockIdx) {
   const block = SERVICES[svcId].blocks[blockIdx];
   const set = selectedItems[svcId]?.[blockIdx];
   if (!set) return false;
+  
   const count = block.items.length;
   if (count === 0) return set.has("__selected__");
-  return set.size === count;
+  
+  let validCount = 0;
+  set.forEach(item => {
+    if (item !== "__selected__" && !isNaN(item) && item >= 0 && item < count) {
+      validCount++;
+    }
+  });
+  return validCount === count;
 }
-function anyItemsInBlock(svcId, blockIdx) {
-  const block = SERVICES[svcId].blocks[blockIdx];
-  const set = selectedItems[svcId]?.[blockIdx];
-  if (!set) return false;
-  if (block.items.length === 0) return set.has("__selected__");
-  return set.size > 0;
-}
+
 function anyItemsInService(svcId) {
   if (svcId === 'annexures') {
-    return annexureEnabled && getActiveAnnexures().length > 0;
+    return !!(annexureEnabled && getActiveAnnexures().length > 0);
   }
   const hasItems = SERVICES[svcId].blocks.some((_, bi) => anyItemsInBlock(svcId, bi));
   const hasDesc = serviceDescriptionOverrides[svcId] && serviceDescriptionOverrides[svcId].trim() !== '';
-  return hasItems || hasDesc;
+  return !!(hasItems || hasDesc);
 }
 function allItemsInService(svcId) {
   if (svcId === 'annexures') return annexureEnabled;
@@ -446,6 +480,7 @@ function getOrderedServiceIds() {
 }
 
 function initPanel() {
+  console.log("HELLO WORLD from initPanel");
   const container = document.getElementById('dynamicServices');
   if (!container) return;
   container.innerHTML = '';
@@ -625,6 +660,7 @@ function deleteService(e, svcId) {
 function handleServiceDragStart(e, svcId) {
   e.stopPropagation();
   isDragging = true;
+  blockNextClick = true;
   e.dataTransfer.setData('text/plain', JSON.stringify({ svcId }));
   e.target.classList.add('dragging');
 }
@@ -672,7 +708,8 @@ function handleServiceDrop(e, targetSvcId) {
     initPanel();
     renderPreview();
   }
-  setTimeout(() => { isDragging = false; }, 50);
+  isDragging = false;
+  setTimeout(() => { blockNextClick = false; }, 150);
 }
 
 function handleItemAdd(e, svcId, bi) {
@@ -812,6 +849,7 @@ function toggleItem(e, svcId, bi, ii) {
 
 function handleItemDragStart(e, svcId, bi, ii) {
   isDragging = true;
+  blockNextClick = true;
   e.dataTransfer.setData('text/plain', JSON.stringify({ svcId, bi, ii }));
   e.target.classList.add('dragging');
 }
@@ -859,12 +897,14 @@ function handleItemDrop(e, targetSvcId, targetBi, targetIi) {
 
   initPanel(); // Re-render sidebar to show new order
   renderPreview();
-  setTimeout(() => { isDragging = false; }, 50);
+  isDragging = false;
+  setTimeout(() => { blockNextClick = false; }, 150);
 }
 
 function handleBlockDragStart(e, svcId, bi) {
   e.stopPropagation();
   isDragging = true;
+  blockNextClick = true;
   e.dataTransfer.setData('text/plain', JSON.stringify({ type: 'block', svcId, bi }));
   e.target.classList.add('dragging');
 }
@@ -941,34 +981,22 @@ function handleBlockDrop(e, targetSvcId, targetBi) {
   initPanel();
   renderPreview();
   scheduleAutoSave();
-  setTimeout(() => { isDragging = false; }, 50);
+  isDragging = false;
+  setTimeout(() => { blockNextClick = false; }, 150);
 }
 
 function refreshServiceUI(svcId) {
-  const svc = SERVICES[svcId];
   const svcRow = document.querySelector(`.service-row[data-id="${svcId}"]`);
-  if (!svcRow) return;
-  const hasAny = anyItemsInService(svcId);
-  const hasAll = allItemsInService(svcId);
-  svcRow.classList.toggle('active', hasAny);
-  const cb = svcRow.querySelector('.checkbox');
-  const mark = svcRow.querySelector('.checkbox-mark');
-
-  if (hasAny && !hasAll) {
-    cb.style.background = 'rgba(200,55,43,0.5)';
-    cb.style.borderColor = 'var(--red)';
-    if (mark) mark.style.opacity = '1';
-  } else {
-    cb.style.background = '';
-    cb.style.borderColor = '';
-    if (mark) mark.style.opacity = '';
+  if (svcRow) {
+    svcRow.classList.remove('active');
   }
-
+}
+function dummyForSyntax() {
+  const svc = SERVICES[svcId];
   if (svc.dynamic) {
     if (svcId === 'annexures') renderAnnexureSidebar();
     return;
   }
-
   svc.blocks.forEach((block, bi) => {
     const blockRow = document.getElementById(`block-row-${svcId}-${bi}`);
     if (!blockRow) return;
