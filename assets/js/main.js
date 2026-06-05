@@ -2,12 +2,12 @@ const selectedItems = {};
 let isDragging = false;
 window.addEventListener('dragstart', () => {
   isDragging = true;
-});
+}, true);
 window.addEventListener('dragend', () => {
   setTimeout(() => {
     isDragging = false;
   }, 50);
-});
+}, true);
 let retainerLabelOverride = "Retainer Cost";
 let paymentLabelOverride = "Mode of Payment";
 const serviceNameOverrides = {};
@@ -624,6 +624,7 @@ function deleteService(e, svcId) {
 
 function handleServiceDragStart(e, svcId) {
   e.stopPropagation();
+  isDragging = true;
   e.dataTransfer.setData('text/plain', JSON.stringify({ svcId }));
   e.target.classList.add('dragging');
 }
@@ -671,6 +672,7 @@ function handleServiceDrop(e, targetSvcId) {
     initPanel();
     renderPreview();
   }
+  setTimeout(() => { isDragging = false; }, 50);
 }
 
 function handleItemAdd(e, svcId, bi) {
@@ -809,6 +811,7 @@ function toggleItem(e, svcId, bi, ii) {
 }
 
 function handleItemDragStart(e, svcId, bi, ii) {
+  isDragging = true;
   e.dataTransfer.setData('text/plain', JSON.stringify({ svcId, bi, ii }));
   e.target.classList.add('dragging');
 }
@@ -856,10 +859,12 @@ function handleItemDrop(e, targetSvcId, targetBi, targetIi) {
 
   initPanel(); // Re-render sidebar to show new order
   renderPreview();
+  setTimeout(() => { isDragging = false; }, 50);
 }
 
 function handleBlockDragStart(e, svcId, bi) {
   e.stopPropagation();
+  isDragging = true;
   e.dataTransfer.setData('text/plain', JSON.stringify({ type: 'block', svcId, bi }));
   e.target.classList.add('dragging');
 }
@@ -936,6 +941,7 @@ function handleBlockDrop(e, targetSvcId, targetBi) {
   initPanel();
   renderPreview();
   scheduleAutoSave();
+  setTimeout(() => { isDragging = false; }, 50);
 }
 
 function refreshServiceUI(svcId) {
