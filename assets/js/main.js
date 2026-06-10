@@ -987,16 +987,19 @@ function handleBlockDrop(e, targetSvcId, targetBi) {
 
 function refreshServiceUI(svcId) {
   const svcRow = document.querySelector(`.service-row[data-id="${svcId}"]`);
-  if (svcRow) {
-    svcRow.classList.remove('active');
-  }
-}
-function dummyForSyntax() {
+  if (!svcRow) return;
+
+  const isActive = anyItemsInService(svcId);
+  svcRow.classList.toggle('active', isActive);
+
   const svc = SERVICES[svcId];
+  if (!svc) return;
+
   if (svc.dynamic) {
     if (svcId === 'annexures') renderAnnexureSidebar();
     return;
   }
+
   svc.blocks.forEach((block, bi) => {
     const blockRow = document.getElementById(`block-row-${svcId}-${bi}`);
     if (!blockRow) return;
