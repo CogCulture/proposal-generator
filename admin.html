@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CogCulture | Admin Panel</title>
+  <meta name="description" content="CogCulture admin panel — manage users and passwords.">
+  <link rel="icon" href="assets/img/logo.png" type="image/png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <link rel="stylesheet" href="assets/css/admin.css">
+</head>
+<body>
+
+<!-- ═══════════════════ TOP BAR ════════════════════════════ -->
+<header class="admin-topbar">
+  <div class="topbar-left">
+    <span class="topbar-brand">CogCulture</span>
+    <span class="topbar-divider"></span>
+    <span class="topbar-subtitle">Admin Panel</span>
+    <span class="admin-badge">Admin</span>
+  </div>
+  <div class="topbar-user">
+    Logged in as <span id="topbarUser">—</span>
+    <button class="btn-logout" onclick="adminLogout()">Sign Out</button>
+  </div>
+</header>
+
+<!-- ═══════════════════ BLOCKED SCREEN ══════════════════════ -->
+<div id="blockedScreen" style="display:none; flex-direction:column; align-items:center; justify-content:center; flex:1; gap:16px; text-align:center; padding:40px;">
+  <div class="block-icon">🔒</div>
+  <h2>Access Denied</h2>
+  <p id="blockedMsg">You do not have permission to view this page.</p>
+  <a href="index.html" class="btn-go-home">← Go to Dashboard</a>
+</div>
+
+<!-- ═══════════════════ ADMIN PANEL ═════════════════════════ -->
+<div id="adminPanel" style="display:none;">
+  <main class="admin-main">
+
+    <!-- Header -->
+    <div class="admin-header">
+      <h1>User Management</h1>
+      <p>View all registered users, change passwords, and manage admin roles.</p>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <span class="stat-label">Total Users</span>
+        <span class="stat-value" id="statTotal">—</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Admins</span>
+        <span class="stat-value" id="statAdmins">—</span>
+      </div>
+    </div>
+
+    <!-- Users Table -->
+    <div class="table-card">
+      <div class="table-header">
+        <h2>All Users</h2>
+        <input
+          id="searchInput"
+          class="search-input"
+          type="text"
+          placeholder="Search by email…"
+        >
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Email</th>
+            <th>User ID</th>
+            <th>Role</th>
+            <th>Joined</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="usersTableBody">
+          <tr><td colspan="5">
+            <div class="table-message">
+              <div class="table-spinner"></div>
+              Loading…
+            </div>
+          </td></tr>
+        </tbody>
+      </table>
+    </div>
+
+  </main>
+</div>
+
+<!-- ═══════════════════ CHANGE PASSWORD MODAL ═══════════════ -->
+<div class="modal-overlay" id="changePwModal">
+  <div class="modal-box">
+    <h3>Change Password</h3>
+    <p>Set a new password for <span class="modal-target" id="modalTargetEmail"></span></p>
+
+    <div id="modalError"   class="modal-error"></div>
+    <div id="modalSuccess" class="modal-success"></div>
+
+    <label class="field-label" for="newPassword">New Password</label>
+    <input
+      class="field-input"
+      id="newPassword"
+      type="password"
+      placeholder="Min. 6 characters"
+      autocomplete="new-password"
+    >
+
+    <label class="field-label" for="confirmPassword">Confirm Password</label>
+    <input
+      class="field-input"
+      id="confirmPassword"
+      type="password"
+      placeholder="Repeat password"
+      autocomplete="new-password"
+      onkeydown="if(event.key==='Enter') confirmChangePassword()"
+    >
+
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeChangePwModal()">Cancel</button>
+      <button class="btn-confirm" id="confirmPwBtn" onclick="confirmChangePassword()">Update Password</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ TOAST ════════════════════════════════ -->
+<div class="toast" id="toast"></div>
+
+<!-- Scripts -->
+<script src="assets/js/supabase-config.js"></script>
+<script src="assets/js/auth.js"></script>
+<script src="assets/js/admin.js"></script>
+
+</body>
+</html>
