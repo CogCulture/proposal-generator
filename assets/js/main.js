@@ -27,7 +27,7 @@ const serviceNameOverrides = {};
 const serviceDescriptionOverrides = {};
 let SERVICE_ORDER = [
   'brand_ambassador', 'brand_campaign', 'brand_manual', 'brand_digital_assets', 'brand_communication', 'packaging', 'video_production',
-  'social_media', 'content_seo', 'SEO_GEO', 'social_listening', 'social_crm', 'analytics_business', 'analytics_reporting', 'google_analytics', 'influencer_marketing', 'performance_marketing', 'orm', 'media_buying', 'ecommerce',
+  'social_media', 'content_seo', 'SEO_GEO', 'social_listening', 'social_crm', 'analytics_business', 'analytics_reporting', 'google_analytics', 'influencer_marketing', 'performance_marketing', 'orm', 'orm_manual', 'media_buying', 'ecommerce',
   'website_process', 'website',
   'photoshoot', 'video_shoot',
   'annexures'
@@ -333,6 +333,7 @@ const SERVICE_ANNEXURE_MAP = {
   influencer_marketing: { B2: ["PR, Influencer & Experiential"], C: ["Social Media — Content & Management"] },
   performance_marketing: { C: ["Media Campaign Creatives"] },
   orm: { C: ["One-to-One / CRM Communication", "ORM"] },
+  orm_manual: { C: ["One-to-One / CRM Communication", "ORM"] },
   media_buying: { B2: ["B2B — Trade & Channel"] },
   ecommerce: { C: ["D2C & E-Commerce Content"] },
   video_production: { B1: ["TVC & Radio", "Photography"] },

@@ -158,6 +158,38 @@ const SERVICES = {
       { title: 'Engagement & Support', items: ['Responding to customer reviews and comments (Google, Yelp, Trustpilot, Facebook)', 'Improving brand perception through positive storytelling', 'Encouraging and highlighting customer testimonials'] }
     ]
   },
+  orm_manual: {
+    section: 'Digital & Social',
+    name: 'ORM-Manual',
+    blocks: [
+      {
+        title: 'Manual Social Listening (native platform dashboards only)',
+        items: [
+          'Facebook: post comments, inbox messages,',
+          'Twitter/X: mentions, replies, tags',
+          'LinkedIn: comments, mentions, messages',
+          'Instagram: comments, tagged posts, DMs'
+        ]
+      },
+      {
+        title: 'Manual Response Management',
+        items: [
+          'Responding to customer comments, queries and DMs',
+          'Escalation matrix & workflow (manual routing to client team)',
+          'Spam & negative-comment moderation',
+          'Flagging enquiries/leads to the client\'s sales/CRM team (manual handoff)'
+        ]
+      },
+      {
+        title: 'Manual Reporting',
+        items: [
+          'Monthly ORM summary: volume of interactions, response coverage, notable mentions',
+          'Manual sentiment tagging (positive/neutral/negative)',
+          'Recurring-theme / complaint highlights'
+        ]
+      }
+    ]
+  },
   media_buying: {
     section: 'Digital & Social',
     name: 'Media Buying & Planning',
