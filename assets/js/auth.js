@@ -145,6 +145,9 @@ async function handleLogin(e) {
     if (typeof loadDashboard === 'function') {
       loadDashboard();
     }
+    if (typeof loadProposalFromURL === 'function') {
+      loadProposalFromURL();
+    }
   } catch (err) {
     showAuthError('Unexpected error: ' + err.message);
   } finally {
@@ -219,6 +222,9 @@ async function handleSignup(e) {
 
     if (typeof loadDashboard === 'function') {
       loadDashboard();
+    }
+    if (typeof loadProposalFromURL === 'function') {
+      loadProposalFromURL();
     }
   } catch (err) {
     showAuthError('Unexpected error during signup: ' + err.message);

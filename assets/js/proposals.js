@@ -31,6 +31,7 @@ function captureSnapshot() {
     payment:        document.getElementById('paymentInput')?.value ?? '',
     retainerLabel:  document.getElementById('retainerLabelInput')?.value ?? 'Retainer Cost',
     paymentLabel:   document.getElementById('paymentLabelInput')?.value ?? 'Mode of Payment',
+    tnc:            document.getElementById('tncInput')?.value ?? '',
     serviceNameOverrides: serviceNameOverrides,
     serviceDescriptionOverrides: serviceDescriptionOverrides,
     selectedItems:  selectedSer,
@@ -93,6 +94,10 @@ function applySnapshot(snap) {
   if (snap.ambassador   !== undefined) document.getElementById('ambassadorInput').value = snap.ambassador;
   if (snap.cost         !== undefined) document.getElementById('costInput').value        = snap.cost;
   if (snap.payment      !== undefined) document.getElementById('paymentInput').value     = snap.payment;
+  if (snap.tnc          !== undefined) {
+    const tncEl = document.getElementById('tncInput');
+    if (tncEl) tncEl.value = snap.tnc;
+  }
 
   if (snap.retainerLabel) {
     const rInput = document.getElementById('retainerLabelInput');
@@ -158,6 +163,9 @@ function applySnapshot(snap) {
     });
   }
 
+  // Clear existing selections before restoring
+  Object.keys(selectedItems).forEach(k => delete selectedItems[k]);
+
   // Restore Sets
   Object.keys(snap.selectedItems || {}).forEach(svcId => {
     selectedItems[svcId] = {};
@@ -169,9 +177,18 @@ function applySnapshot(snap) {
   if (snap.expandedBlocks) Object.assign(expandedBlocks, snap.expandedBlocks);
   if (snap.annexureEnabled !== undefined) annexureEnabled = snap.annexureEnabled;
 
-  if (snap.disabledAnnexures)        snap.disabledAnnexures.forEach(v => disabledAnnexures.add(v));
-  if (snap.disabledAnnexureRows)     snap.disabledAnnexureRows.forEach(v => disabledAnnexureRows.add(v));
-  if (snap.disabledAnnexureSections) snap.disabledAnnexureSections.forEach(v => disabledAnnexureSections.add(v));
+  if (snap.disabledAnnexures) {
+    disabledAnnexures.clear();
+    snap.disabledAnnexures.forEach(v => disabledAnnexures.add(v));
+  }
+  if (snap.disabledAnnexureRows) {
+    disabledAnnexureRows.clear();
+    snap.disabledAnnexureRows.forEach(v => disabledAnnexureRows.add(v));
+  }
+  if (snap.disabledAnnexureSections) {
+    disabledAnnexureSections.clear();
+    snap.disabledAnnexureSections.forEach(v => disabledAnnexureSections.add(v));
+  }
 
   Object.assign(annexureOverrides,       snap.annexureOverrides       || {});
   Object.assign(annexureTaskOverrides,   snap.annexureTaskOverrides   || {});
@@ -314,14 +331,27 @@ function showSaveIndicator(label) {
 // ── Load a proposal by ID from the URL query param (?id=...)
 async function loadProposalFromURL() {
   const id = new URLSearchParams(window.location.search).get('id');
-  if (!id || !currentUser) return;
+  if (!id) return;
   _activeProposalId = id;
 
   const db = getDB();
+  if (!db) return;
+
+  // Show loading indicator in preview
+  const previewScroll = document.getElementById('previewScroll');
+  const prevHTML = previewScroll ? previewScroll.innerHTML : '';
+  if (previewScroll) {
+    previewScroll.innerHTML = `
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:60vh;gap:16px;color:#8a857c;">
+        <div class="table-spinner" style="width:36px;height:36px;border:3px solid rgba(255,255,255,0.1);border-top-color:#c8372b;border-radius:50%;animation:spin 0.8s linear infinite;"></div>
+        <p style="font-size:14px;color:#c9c3b8;">Loading shared proposal…</p>
+      </div>
+    `;
+  }
 
   // 1. Fetch proposal row to check ownership and permissions
   try {
-    const { data: propRow } = await db
+    const { data: propRow, error: pErr } = await db
       .from('proposals')
       .select('*')
       .eq('id', id)
@@ -330,40 +360,55 @@ async function loadProposalFromURL() {
     if (propRow) {
       _currentProposalMeta = propRow;
 
-      // Check user permissions
-      const isOwner = propRow.user_id === currentUser.id ||
-                      (propRow.owner_email && propRow.owner_email.toLowerCase() === currentUser.email.toLowerCase());
-      const collabs = propRow.collaborators || [];
-      const collabMatch = collabs.find(c => c.email && c.email.toLowerCase() === currentUser.email.toLowerCase());
-
-      if (isOwner) {
-        _userPermissionRole = 'owner';
-      } else if (collabMatch) {
-        _userPermissionRole = collabMatch.role || 'editor';
-      } else if (propRow.access_level === 'restricted') {
+      if (!currentUser) {
+        // Unauthenticated visitor: allow view mode
         _userPermissionRole = 'viewer';
       } else {
-        _userPermissionRole = 'editor'; // Workspace open access
+        const myEmail = currentUser.email?.toLowerCase() || '';
+        const isOwner = propRow.user_id === currentUser.id ||
+                        (propRow.owner_email && propRow.owner_email.toLowerCase() === myEmail);
+        const collabs = propRow.collaborators || [];
+        const collabMatch = collabs.find(c => c && c.email && c.email.toLowerCase() === myEmail);
+
+        if (isOwner) {
+          _userPermissionRole = 'owner';
+        } else if (collabMatch) {
+          _userPermissionRole = collabMatch.role || 'editor';
+        } else if (propRow.access_level === 'restricted') {
+          _userPermissionRole = 'viewer';
+        } else {
+          _userPermissionRole = 'editor'; // Workspace open access
+        }
       }
 
       applyPermissionMode(_userPermissionRole);
       updateCollaboratorUI();
     }
   } catch (err) {
-    console.warn('Could not load proposal meta:', err);
+    console.warn('[CogCulture] Error fetching proposal metadata:', err);
   }
 
-  // 2. Fetch latest snapshot
-  const { data, error } = await db
-    .from('proposal_versions')
-    .select('*')
-    .eq('proposal_id', id)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .single();
+  // 2. Fetch latest snapshot (using .limit(1) array to prevent .single() errors)
+  try {
+    const { data: versions, error: vErr } = await db
+      .from('proposal_versions')
+      .select('*')
+      .eq('proposal_id', id)
+      .order('created_at', { ascending: false })
+      .limit(1);
 
-  if (error || !data) return;
-  applySnapshot(data.snapshot);
+    const latest = (versions && versions.length > 0) ? versions[0] : null;
+
+    if (latest && latest.snapshot) {
+      applySnapshot(latest.snapshot);
+    } else {
+      console.warn('[CogCulture] No version snapshots found for proposal:', id, vErr);
+      if (previewScroll) previewScroll.innerHTML = prevHTML;
+    }
+  } catch (err) {
+    console.error('[CogCulture] Error loading latest proposal snapshot:', err);
+    if (previewScroll) previewScroll.innerHTML = prevHTML;
+  }
 }
 
 // ── Apply Read-Only restrictions if viewer
@@ -373,7 +418,12 @@ function applyPermissionMode(role) {
   const checkpointBtn = document.getElementById('checkpointBtn');
 
   if (role === 'viewer') {
-    if (banner) banner.style.display = 'flex';
+    if (banner) {
+      banner.style.display = 'flex';
+      banner.innerHTML = !currentUser
+        ? `<span>👁️ <strong>Viewing Shared Proposal:</strong> You are viewing in read-only mode. <button onclick="openAuthModal()" style="background:#c8372b;color:#fff;border:none;padding:4px 12px;border-radius:6px;margin-left:8px;font-size:12px;font-weight:600;cursor:pointer;">Log In / Sign Up to Edit</button></span>`
+        : `<span>👁️ <strong>Read-Only Mode:</strong> You have Viewer permissions for this proposal. You can browse slides and export PDF, but edits cannot be saved.</span>`;
+    }
     if (saveBtn) saveBtn.style.display = 'none';
     if (checkpointBtn) checkpointBtn.style.display = 'none';
 

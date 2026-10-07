@@ -105,8 +105,9 @@ function updateEditorAuthUI() {
   await initAuth();
   updateEditorAuthUI();
 
-  // Load proposal from URL if ?id= present
-  if (currentUser) {
+  // Always load proposal from URL if ?id= present
+  const urlId = new URLSearchParams(window.location.search).get('id');
+  if (urlId) {
     await loadProposalFromURL();
   }
 
