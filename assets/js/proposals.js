@@ -315,7 +315,11 @@ async function saveVersion(label = 'Auto-save', isCheckpoint = false, notes = ''
     _activeProposalId    = data.id;
     _currentProposalMeta = data;
     _userPermissionRole  = 'owner';
-    window.history.replaceState({}, '', `editor.html?id=${_activeProposalId}`);
+    const currentPath    = window.location.pathname;
+    window.history.replaceState({}, '', `${currentPath}?id=${_activeProposalId}`);
+    if (typeof sessionStorage !== 'undefined') {
+      sessionStorage.setItem('active_proposal_id', _activeProposalId);
+    }
     updateCollaboratorUI();
   }
 
@@ -360,12 +364,24 @@ function showSaveIndicator(label) {
 
 // ── Load a proposal by ID from the URL query param (?id=...)
 async function loadProposalFromURL() {
-  const id = new URLSearchParams(window.location.search).get('id');
+  let id = new URLSearchParams(window.location.search).get('id');
+  if (!id && typeof sessionStorage !== 'undefined') {
+    const fallbackId = sessionStorage.getItem('active_proposal_id');
+    if (fallbackId) {
+      id = fallbackId;
+      const currentPath = window.location.pathname;
+      window.history.replaceState({}, '', `${currentPath}?id=${id}`);
+    }
+  }
   if (!id) return;
   _activeProposalId = id;
+  if (typeof sessionStorage !== 'undefined') {
+    sessionStorage.setItem('active_proposal_id', id);
+  }
   _isLoadingProposal = true;
 
   const db = getDB();
+  console.log('[CogCulture proposals] getDB returned:', !!db);
   if (!db) {
     _isLoadingProposal = false;
     return;

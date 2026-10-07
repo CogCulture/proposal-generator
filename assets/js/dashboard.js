@@ -193,12 +193,20 @@ function buildProposalCard(p) {
 
 // ── Navigation
 function openProposal(id) {
-  window.location.href = `editor.html?id=${id}`;
+  if (typeof sessionStorage !== 'undefined') {
+    sessionStorage.setItem('active_proposal_id', id);
+  }
+  const isClean = !window.location.pathname.endsWith('.html');
+  window.location.href = isClean ? `editor?id=${id}` : `editor.html?id=${id}`;
 }
 
 function guardAndCreateNew() {
   if (!currentUser) { openAuthModal(); return; }
-  window.location.href = 'editor.html';
+  if (typeof sessionStorage !== 'undefined') {
+    sessionStorage.removeItem('active_proposal_id');
+  }
+  const isClean = !window.location.pathname.endsWith('.html');
+  window.location.href = isClean ? 'editor' : 'editor.html';
 }
 
 function guardNewProposal(e) {

@@ -71,7 +71,7 @@
   <!-- ═══ TOP BAR ════════════════════════════════════════════ -->
   <header class="topbar">
     <div class="topbar-left">
-      <a href="index.html" class="topbar-back" title="Back to dashboard">←</a>
+      <a href="index.html" class="topbar-back" onclick="if(typeof sessionStorage!=='undefined'){sessionStorage.removeItem('active_proposal_id');}" title="Back to dashboard">←</a>
       <span class="topbar-brand">CogCulture</span>
       <span class="topbar-divider"></span>
       <span class="topbar-subtitle">Proposal Generator</span>

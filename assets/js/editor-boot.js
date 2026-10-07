@@ -102,15 +102,17 @@ function updateEditorAuthUI() {
 
 // ── Boot sequence
 (async () => {
-  if (document.readyState === 'loading') {
-    await new Promise(r => document.addEventListener('DOMContentLoaded', r, { once: true }));
+  console.log('[CogCulture Boot] Boot sequence started...');
+  try {
+    await initAuth();
+    console.log('[CogCulture Boot] initAuth completed, currentUser =', currentUser?.email);
+    updateEditorAuthUI();
+    console.log('[CogCulture Boot] Calling loadProposalFromURL()...');
+    await loadProposalFromURL();
+    console.log('[CogCulture Boot] loadProposalFromURL completed!');
+  } catch (bootErr) {
+    console.error('[CogCulture Boot] Error in boot sequence:', bootErr);
   }
-
-  await initAuth();
-  updateEditorAuthUI();
-
-  // Load proposal from URL if ?id= present (accessible to all collaborators & viewers)
-  await loadProposalFromURL();
 
   // Re-hook updateEditorAuthUI into auth changes
   const db = getDB();
