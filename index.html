@@ -11,6 +11,7 @@
   <!-- Supabase CDN -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <link rel="stylesheet" href="assets/css/dashboard.css">
+  <link rel="stylesheet" href="assets/css/editor-auth.css">
 </head>
 <body>
 
@@ -102,13 +103,26 @@
     <!-- TOP BAR -->
     <header class="dash-topbar">
       <div>
-        <h1 class="dash-title">My Proposals</h1>
-        <p class="dash-sub">Pick up where you left off, or start fresh.</p>
+        <h1 class="dash-title">Company Workspace</h1>
+        <p class="dash-sub">Collaborate on team proposals, pick up where you left off, or start fresh.</p>
       </div>
       <button class="btn-new" onclick="guardAndCreateNew()">
         <span>＋</span> New Proposal
       </button>
     </header>
+
+    <!-- WORKSPACE FILTER TABS -->
+    <div class="workspace-tabs">
+      <button class="ws-tab active" id="tabAll" onclick="setDashboardTab('all')">
+        <span>🏢</span> All Workspace <span class="ws-badge" id="countAll">0</span>
+      </button>
+      <button class="ws-tab" id="tabMine" onclick="setDashboardTab('mine')">
+        <span>👤</span> Created by Me <span class="ws-badge" id="countMine">0</span>
+      </button>
+      <button class="ws-tab" id="tabShared" onclick="setDashboardTab('shared')">
+        <span>👥</span> Shared with Me <span class="ws-badge" id="countShared">0</span>
+      </button>
+    </div>
 
     <!-- LOADING STATE -->
     <div id="dashLoading" class="dash-loading">
@@ -155,6 +169,58 @@
     <div class="confirm-actions">
       <button class="btn-cancel"  onclick="closeDeleteModal()">Cancel</button>
       <button class="btn-danger"  id="confirmDeleteBtn">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ SHARE & COLLABORATE MODAL ═════════════════ -->
+<div class="modal-backdrop" id="shareModal">
+  <div class="share-modal-box">
+    <button class="auth-close" onclick="closeDashboardShareModal()">✕</button>
+    <h3>Share & Collaborate</h3>
+    <p class="sub">Invite teammates to co-edit or review this proposal.</p>
+
+    <!-- Section: Share Link -->
+    <div class="share-section">
+      <label class="share-section-label">Proposal Link</label>
+      <div class="share-link-group">
+        <input type="text" id="shareLinkInput" class="share-link-input" readonly value="">
+        <button class="btn-copy-link" id="btnCopyShareLink" onclick="copyDashboardShareLink()">Copy Link</button>
+      </div>
+
+      <div class="access-setting-row">
+        <div>
+          <div class="access-setting-text"><strong>General Workspace Access</strong></div>
+          <div class="access-setting-desc" id="accessSettingDesc">Anyone in company with link can edit</div>
+        </div>
+        <select class="access-select" id="accessLevelSelect" onchange="onDashboardAccessLevelChange(this.value)">
+          <option value="workspace">Company Workspace (Can Edit)</option>
+          <option value="restricted">Restricted (Invite Only)</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Section: Invite by Email -->
+    <div class="share-section">
+      <label class="share-section-label">Invite Colleague by Email</label>
+      <div class="invite-input-row">
+        <input type="email" id="inviteEmailInput" class="invite-email-input" placeholder="colleague@cogculture.agency" onkeydown="if(event.key==='Enter') executeDashboardInvite()">
+        <select id="inviteRoleSelect" class="invite-role-select">
+          <option value="editor">Can Edit</option>
+          <option value="viewer">Can View</option>
+        </select>
+        <button class="btn-invite" id="btnInviteSubmit" onclick="executeDashboardInvite()">Invite</button>
+      </div>
+      <div id="shareErrorMsg" class="auth-error" style="display:none;margin-bottom:8px"></div>
+      <div id="shareSuccessMsg" style="display:none;color:#6bcb77;font-size:12px;margin-bottom:8px"></div>
+    </div>
+
+    <!-- Section: Collaborators List -->
+    <div class="share-section" style="margin-bottom:0">
+      <label class="share-section-label">People with Access</label>
+      <div class="collab-list" id="collabList">
+        <!-- Dynamically populated -->
+      </div>
     </div>
   </div>
 </div>

@@ -162,9 +162,134 @@
 
 .history-restore-btn {
   background:rgba(200,55,43,0.12); border:1px solid rgba(200,55,43,0.2);
-  border-radius:7px; padding:7px 14px;
-  color:#f09090; font-size:12px; font-weight:600;
+  border-radius:7px; padding:6px 12px;
+  color:#f09090; font-size:11.5px; font-weight:600;
   cursor:pointer; transition:all 0.15s; white-space:nowrap;
   font-family:inherit;
 }
 .history-restore-btn:hover { background:#c8372b; color:#fff; border-color:#c8372b; }
+
+.history-preview-btn {
+  background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1);
+  border-radius:7px; padding:6px 10px;
+  color:#c9c3b8; font-size:11.5px; font-weight:500;
+  cursor:pointer; transition:all 0.15s; white-space:nowrap;
+  font-family:inherit;
+}
+.history-preview-btn:hover { background:rgba(255,255,255,0.12); color:#fff; }
+
+.history-actions-col { display:flex; gap:6px; align-items:center; }
+.history-checkpoint-badge {
+  display:inline-flex; align-items:center; gap:4px;
+  background:rgba(217, 119, 6, 0.15); color:#fbbf24;
+  border:1px solid rgba(217, 119, 6, 0.3); border-radius:4px;
+  padding:2px 6px; font-size:10px; font-weight:600; text-transform:uppercase;
+  letter-spacing:0.04em; margin-bottom:2px;
+}
+.history-author {
+  font-size:11px; color:#a39e93; display:flex; align-items:center; gap:4px;
+}
+
+/* ── Collaboration topbar controls ── */
+.btn-share {
+  background:rgba(200,55,43,0.12); border:1px solid rgba(200,55,43,0.3);
+  color:#f09090; border-radius:8px; padding:6px 12px; font-size:12px; font-weight:600;
+  cursor:pointer; transition:all 0.15s; display:inline-flex; align-items:center; gap:6px;
+  font-family:inherit;
+}
+.btn-share:hover { background:rgba(200,55,43,0.25); color:#fff; }
+.collab-count-badge {
+  background:#c8372b; color:#fff; border-radius:10px; padding:1px 6px;
+  font-size:10px; font-weight:700;
+}
+.collab-presence {
+  display:flex; align-items:center; gap:6px; font-size:12px; color:#8a857c; margin-right:8px;
+}
+.collab-owner-tag {
+  background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1);
+  padding:3px 8px; border-radius:12px; font-size:11px; color:#c9c3b8;
+}
+
+/* ── Read-only mode banner ── */
+.read-only-banner {
+  background:rgba(217, 119, 6, 0.15); border:1px solid rgba(217, 119, 6, 0.3);
+  color:#fde68a; padding:10px 16px; font-size:12.5px; border-radius:8px;
+  margin:12px 16px 0; display:flex; align-items:center; gap:8px;
+}
+
+/* ── Share Modal styles ── */
+.share-modal-box {
+  background:#252220; border:1px solid rgba(255,255,255,0.08); border-radius:18px;
+  padding:32px; width:480px; max-width:92vw; position:relative;
+  box-shadow:0 32px 80px rgba(0,0,0,0.6); animation:authSlide 0.28s ease;
+}
+.share-modal-box h3 { font-size:18px; font-weight:700; margin-bottom:4px; }
+.share-modal-box .sub { font-size:12.5px; color:#8a857c; margin-bottom:20px; }
+
+.share-section { margin-bottom:20px; }
+.share-section-label { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.08em; color:#8a857c; margin-bottom:8px; display:block; }
+
+.share-link-group {
+  display:flex; gap:8px; background:rgba(0,0,0,0.25); border:1px solid rgba(255,255,255,0.1);
+  border-radius:8px; padding:4px 4px 4px 12px; align-items:center;
+}
+.share-link-input {
+  flex:1; background:none; border:none; color:#e2ddd6; font-size:12.5px; outline:none; font-family:inherit;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.btn-copy-link {
+  background:#c8372b; color:#fff; border:none; border-radius:6px; padding:8px 14px;
+  font-size:12px; font-weight:600; cursor:pointer; transition:all 0.15s; font-family:inherit;
+  white-space:nowrap;
+}
+.btn-copy-link:hover { background:#a82e23; }
+
+.access-setting-row {
+  display:flex; align-items:center; justify-content:space-between;
+  margin-top:10px; padding:10px 12px; background:rgba(255,255,255,0.03);
+  border:1px solid rgba(255,255,255,0.06); border-radius:8px;
+}
+.access-setting-text { font-size:12px; color:#c9c3b8; }
+.access-setting-desc { font-size:11px; color:#8a857c; margin-top:2px; }
+.access-select {
+  background:#1c1a17; color:#fff; border:1px solid rgba(255,255,255,0.15);
+  border-radius:6px; padding:6px 10px; font-size:12px; outline:none; font-family:inherit;
+}
+
+.invite-input-row { display:flex; gap:8px; margin-bottom:12px; }
+.invite-email-input {
+  flex:1; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1);
+  border-radius:8px; padding:9px 12px; font-size:13px; color:#fff; outline:none; font-family:inherit;
+}
+.invite-email-input:focus { border-color:rgba(200,55,43,0.5); }
+.invite-role-select {
+  background:#1c1a17; color:#fff; border:1px solid rgba(255,255,255,0.12);
+  border-radius:8px; padding:0 10px; font-size:12.5px; outline:none; font-family:inherit;
+}
+.btn-invite {
+  background:#c8372b; color:#fff; border:none; border-radius:8px; padding:9px 16px;
+  font-size:12.5px; font-weight:600; cursor:pointer; font-family:inherit; transition:all 0.15s;
+}
+.btn-invite:hover { background:#a82e23; }
+
+.collab-list { max-height:160px; overflow-y:auto; border:1px solid rgba(255,255,255,0.06); border-radius:8px; }
+.collab-row {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:10px 12px; border-bottom:1px solid rgba(255,255,255,0.04);
+}
+.collab-row:last-child { border-bottom:none; }
+.collab-info { display:flex; align-items:center; gap:10px; }
+.collab-avatar {
+  width:26px; height:26px; border-radius:50%; background:#3d3a34;
+  display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:#fff;
+}
+.collab-name { font-size:12.5px; color:#e2ddd6; font-weight:500; }
+.collab-role-tag {
+  font-size:11px; padding:2px 8px; border-radius:10px; background:rgba(255,255,255,0.06); color:#a39e93;
+}
+.collab-role-tag.owner { background:rgba(200,55,43,0.15); color:#f09090; font-weight:600; }
+.collab-btn-remove {
+  background:none; border:none; color:#8a857c; cursor:pointer; font-size:13px; padding:4px 6px; border-radius:4px;
+}
+.collab-btn-remove:hover { color:#f09090; background:rgba(200,55,43,0.1); }
+

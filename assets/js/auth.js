@@ -199,7 +199,13 @@ async function handleSignup(e) {
       .single();
 
     if (insertError) {
-      showAuthError('Could not create account: ' + insertError.message);
+      if (insertError.code === '42501' || (insertError.message && insertError.message.toLowerCase().includes('row-level security'))) {
+        showAuthError('Supabase Permission Error: Row-Level Security (RLS) is enabled. Run supabase-setup.sql in your Supabase SQL Editor to disable RLS or allow public access.');
+      } else if (insertError.code === '23503' || (insertError.message && insertError.message.toLowerCase().includes('foreign key'))) {
+        showAuthError('Supabase Constraint Error: A foreign key constraint on custom_users is blocking signups. Please run supabase-setup.sql in your Supabase SQL Editor to fix it.');
+      } else {
+        showAuthError('Could not create account: ' + insertError.message);
+      }
       btn.disabled = false; btn.textContent = 'Create Account';
       return;
     }
