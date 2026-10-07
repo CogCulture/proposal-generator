@@ -102,6 +102,10 @@ function updateEditorAuthUI() {
 
 // ── Boot sequence
 (async () => {
+  if (document.readyState === 'loading') {
+    await new Promise(r => document.addEventListener('DOMContentLoaded', r, { once: true }));
+  }
+
   await initAuth();
   updateEditorAuthUI();
 

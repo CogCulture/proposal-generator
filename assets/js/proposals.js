@@ -31,6 +31,7 @@ function captureSnapshot() {
     payment:        document.getElementById('paymentInput')?.value ?? '',
     retainerLabel:  document.getElementById('retainerLabelInput')?.value ?? 'Retainer Cost',
     paymentLabel:   document.getElementById('paymentLabelInput')?.value ?? 'Mode of Payment',
+    tnc:            document.getElementById('tncInput')?.value ?? '',
     serviceNameOverrides: serviceNameOverrides,
     serviceDescriptionOverrides: serviceDescriptionOverrides,
     selectedItems:  selectedSer,
@@ -89,121 +90,166 @@ function captureSnapshot() {
 // ── Restore editor state from a snapshot object
 function applySnapshot(snap) {
   if (!snap) return;
-  if (snap.brandName    !== undefined) document.getElementById('brandInput').value      = snap.brandName;
-  if (snap.ambassador   !== undefined) document.getElementById('ambassadorInput').value = snap.ambassador;
-  if (snap.cost         !== undefined) document.getElementById('costInput').value        = snap.cost;
-  if (snap.payment      !== undefined) document.getElementById('paymentInput').value     = snap.payment;
 
-  if (snap.retainerLabel) {
-    const rInput = document.getElementById('retainerLabelInput');
-    if (rInput) rInput.value = snap.retainerLabel;
-    retainerLabelOverride = snap.retainerLabel;
-  } else {
-    const rInput = document.getElementById('retainerLabelInput');
-    if (rInput) rInput.value = "Retainer Cost";
-    retainerLabelOverride = "Retainer Cost";
-  }
-  if (snap.paymentLabel) {
-    const pInput = document.getElementById('paymentLabelInput');
-    if (pInput) pInput.value = snap.paymentLabel;
-    paymentLabelOverride = snap.paymentLabel;
-  } else {
-    const pInput = document.getElementById('paymentLabelInput');
-    if (pInput) pInput.value = "Mode of Payment";
-    paymentLabelOverride = "Mode of Payment";
-  }
+  try {
+    // 1. Text Inputs
+    const bInput = document.getElementById('brandInput');
+    if (bInput && snap.brandName !== undefined) bInput.value = snap.brandName;
 
-  if (snap.serviceNameOverrides) {
-    for (let key in snap.serviceNameOverrides) delete serviceNameOverrides[key];
-    Object.assign(serviceNameOverrides, snap.serviceNameOverrides);
-  } else {
-    for (let key in serviceNameOverrides) delete serviceNameOverrides[key];
-  }
+    const aInput = document.getElementById('ambassadorInput');
+    if (aInput && snap.ambassador !== undefined) aInput.value = snap.ambassador;
 
-  if (snap.serviceDescriptionOverrides) {
-    for (let key in snap.serviceDescriptionOverrides) delete serviceDescriptionOverrides[key];
-    Object.assign(serviceDescriptionOverrides, snap.serviceDescriptionOverrides);
-  } else {
-    for (let key in serviceDescriptionOverrides) delete serviceDescriptionOverrides[key];
-  }
+    const cInput = document.getElementById('costInput');
+    if (cInput && snap.cost !== undefined) cInput.value = snap.cost;
 
-  // Restore custom services first
-  if (snap.customServices) {
-    Object.keys(snap.customServices).forEach(id => {
-      SERVICES[id] = snap.customServices[id];
-    });
-  }
+    const pInput = document.getElementById('paymentInput');
+    if (pInput && snap.payment !== undefined) pInput.value = snap.payment;
 
-  // Restore service order
-  if (snap.serviceOrder) {
-    Object.keys(snap.serviceOrder).forEach(sec => {
-      SERVICE_ORDER[sec] = snap.serviceOrder[sec];
-    });
-  }
+    const tncInput = document.getElementById('tncInput');
+    if (tncInput && snap.tnc !== undefined) tncInput.value = snap.tnc;
 
-  // Restore custom service blocks first
-  if (snap.serviceBlocks) {
-    Object.keys(snap.serviceBlocks).forEach(id => {
-      if (SERVICES[id] && SERVICES[id].blocks) {
-        snap.serviceBlocks[id].forEach((snapBlock, bi) => {
-          if (SERVICES[id].blocks[bi]) {
-            if (snapBlock.title !== undefined) SERVICES[id].blocks[bi].title = snapBlock.title;
-            if (snapBlock.para  !== undefined) SERVICES[id].blocks[bi].para  = snapBlock.para;
-            if (snapBlock.items !== undefined) SERVICES[id].blocks[bi].items = snapBlock.items;
-          } else {
-            SERVICES[id].blocks[bi] = snapBlock;
-          }
+    const rLabelInput = document.getElementById('retainerLabelInput');
+    if (rLabelInput) rLabelInput.value = snap.retainerLabel || "Retainer Cost";
+    retainerLabelOverride = snap.retainerLabel || "Retainer Cost";
+    if (typeof window !== 'undefined') window.retainerLabelOverride = retainerLabelOverride;
+
+    const pLabelInput = document.getElementById('paymentLabelInput');
+    if (pLabelInput) pLabelInput.value = snap.paymentLabel || "Mode of Payment";
+    paymentLabelOverride = snap.paymentLabel || "Mode of Payment";
+    if (typeof window !== 'undefined') window.paymentLabelOverride = paymentLabelOverride;
+
+    // 2. Overrides
+    if (typeof serviceNameOverrides !== 'undefined') {
+      for (let key in serviceNameOverrides) delete serviceNameOverrides[key];
+      if (snap.serviceNameOverrides) Object.assign(serviceNameOverrides, snap.serviceNameOverrides);
+    }
+
+    if (typeof serviceDescriptionOverrides !== 'undefined') {
+      for (let key in serviceDescriptionOverrides) delete serviceDescriptionOverrides[key];
+      if (snap.serviceDescriptionOverrides) Object.assign(serviceDescriptionOverrides, snap.serviceDescriptionOverrides);
+    }
+
+    // 3. Custom services
+    if (snap.customServices && typeof SERVICES !== 'undefined') {
+      Object.keys(snap.customServices).forEach(id => {
+        SERVICES[id] = snap.customServices[id];
+      });
+    }
+
+    // 4. Service order (safe Array update)
+    if (snap.serviceOrder && Array.isArray(snap.serviceOrder)) {
+      if (typeof SERVICE_ORDER !== 'undefined') {
+        SERVICE_ORDER.length = 0;
+        SERVICE_ORDER.push(...snap.serviceOrder);
+      }
+      if (typeof window !== 'undefined') {
+        window.SERVICE_ORDER = snap.serviceOrder;
+      }
+    }
+
+    // 5. Custom service blocks
+    if (snap.serviceBlocks && typeof SERVICES !== 'undefined') {
+      Object.keys(snap.serviceBlocks).forEach(id => {
+        if (SERVICES[id] && SERVICES[id].blocks) {
+          snap.serviceBlocks[id].forEach((snapBlock, bi) => {
+            if (SERVICES[id].blocks[bi]) {
+              if (snapBlock.title !== undefined) SERVICES[id].blocks[bi].title = snapBlock.title;
+              if (snapBlock.para  !== undefined) SERVICES[id].blocks[bi].para  = snapBlock.para;
+              if (snapBlock.items !== undefined) SERVICES[id].blocks[bi].items = snapBlock.items;
+            } else {
+              SERVICES[id].blocks[bi] = snapBlock;
+            }
+          });
+        }
+      });
+    }
+
+    // 6. Selected items (clean clear and restore)
+    if (typeof selectedItems !== 'undefined') {
+      Object.keys(selectedItems).forEach(k => delete selectedItems[k]);
+      if (snap.selectedItems) {
+        Object.keys(snap.selectedItems).forEach(svcId => {
+          selectedItems[svcId] = {};
+          Object.keys(snap.selectedItems[svcId]).forEach(bi => {
+            selectedItems[svcId][bi] = new Set(snap.selectedItems[svcId][bi]);
+          });
         });
       }
+    }
+
+    // 7. UI Expansion & Annexure enabled
+    if (typeof expandedBlocks !== 'undefined') {
+      Object.keys(expandedBlocks).forEach(k => delete expandedBlocks[k]);
+      if (snap.expandedBlocks) Object.assign(expandedBlocks, snap.expandedBlocks);
+    }
+
+    if (snap.annexureEnabled !== undefined) {
+      if (typeof annexureEnabled !== 'undefined') annexureEnabled = snap.annexureEnabled;
+      if (typeof window !== 'undefined') window.annexureEnabled = snap.annexureEnabled;
+    }
+
+    // 8. Disabled annexures & rows
+    if (typeof disabledAnnexures !== 'undefined') {
+      disabledAnnexures.clear();
+      if (Array.isArray(snap.disabledAnnexures)) snap.disabledAnnexures.forEach(v => disabledAnnexures.add(v));
+    }
+    if (typeof disabledAnnexureRows !== 'undefined') {
+      disabledAnnexureRows.clear();
+      if (Array.isArray(snap.disabledAnnexureRows)) snap.disabledAnnexureRows.forEach(v => disabledAnnexureRows.add(v));
+    }
+    if (typeof disabledAnnexureSections !== 'undefined') {
+      disabledAnnexureSections.clear();
+      if (Array.isArray(snap.disabledAnnexureSections)) snap.disabledAnnexureSections.forEach(v => disabledAnnexureSections.add(v));
+    }
+
+    // 9. Annexure overrides
+    const overrideMaps = [
+      [typeof annexureOverrides !== 'undefined' ? annexureOverrides : null, snap.annexureOverrides],
+      [typeof annexureTaskOverrides !== 'undefined' ? annexureTaskOverrides : null, snap.annexureTaskOverrides],
+      [typeof annexureDetailOverrides !== 'undefined' ? annexureDetailOverrides : null, snap.annexureDetailOverrides],
+      [typeof annexureNotesOverrides !== 'undefined' ? annexureNotesOverrides : null, snap.annexureNotesOverrides],
+      [typeof annexureCatOverrides !== 'undefined' ? annexureCatOverrides : null, snap.annexureCatOverrides],
+      [typeof annexureHeadingOverrides !== 'undefined' ? annexureHeadingOverrides : null, snap.annexureHeadingOverrides]
+    ];
+    overrideMaps.forEach(([target, source]) => {
+      if (target) {
+        Object.keys(target).forEach(k => delete target[k]);
+        if (source) Object.assign(target, source);
+      }
     });
+
+    // 10. Annexure titles, sections & custom annexures
+    if (typeof ANNEXURE_DATA !== 'undefined') {
+      if (snap.annexureDataSnap) {
+        Object.keys(snap.annexureDataSnap).forEach(id => {
+          ANNEXURE_DATA[id] = snap.annexureDataSnap[id];
+        });
+      } else if (snap.customAnnexures) {
+        Object.keys(snap.customAnnexures).forEach(id => {
+          ANNEXURE_DATA[id] = snap.customAnnexures[id];
+        });
+      }
+    }
+
+    if (typeof CUSTOM_ANNEXURE_IDS !== 'undefined') {
+      CUSTOM_ANNEXURE_IDS.clear();
+      if (Array.isArray(snap.customAnnexureIds)) snap.customAnnexureIds.forEach(id => CUSTOM_ANNEXURE_IDS.add(id));
+    }
+
+    // 11. Service-Annexure mapping
+    if (typeof SERVICE_ANNEXURE_MAP !== 'undefined' && snap.serviceAnnexureMapSnap) {
+      Object.assign(SERVICE_ANNEXURE_MAP, snap.serviceAnnexureMapSnap);
+    }
+  } catch (err) {
+    console.error('[CogCulture] Error during applySnapshot deserialization:', err);
+  } finally {
+    try {
+      if (typeof initPanel === 'function') initPanel();
+      if (typeof renderPreview === 'function') renderPreview();
+    } catch (renderErr) {
+      console.error('[CogCulture] Error rendering after applySnapshot:', renderErr);
+    }
   }
-
-  // Restore Sets
-  Object.keys(snap.selectedItems || {}).forEach(svcId => {
-    selectedItems[svcId] = {};
-    Object.keys(snap.selectedItems[svcId]).forEach(bi => {
-      selectedItems[svcId][bi] = new Set(snap.selectedItems[svcId][bi]);
-    });
-  });
-
-  if (snap.expandedBlocks) Object.assign(expandedBlocks, snap.expandedBlocks);
-  if (snap.annexureEnabled !== undefined) annexureEnabled = snap.annexureEnabled;
-
-  if (snap.disabledAnnexures)        snap.disabledAnnexures.forEach(v => disabledAnnexures.add(v));
-  if (snap.disabledAnnexureRows)     snap.disabledAnnexureRows.forEach(v => disabledAnnexureRows.add(v));
-  if (snap.disabledAnnexureSections) snap.disabledAnnexureSections.forEach(v => disabledAnnexureSections.add(v));
-
-  Object.assign(annexureOverrides,       snap.annexureOverrides       || {});
-  Object.assign(annexureTaskOverrides,   snap.annexureTaskOverrides   || {});
-  Object.assign(annexureDetailOverrides, snap.annexureDetailOverrides || {});
-  Object.assign(annexureNotesOverrides,  snap.annexureNotesOverrides  || {});
-  Object.assign(annexureCatOverrides,    snap.annexureCatOverrides    || {});
-  Object.assign(annexureHeadingOverrides,  snap.annexureHeadingOverrides  || {});
-
-  // Restore all annexure titles and section names
-  if (snap.annexureDataSnap) {
-    Object.keys(snap.annexureDataSnap).forEach(id => {
-      ANNEXURE_DATA[id] = snap.annexureDataSnap[id];
-    });
-  } else if (snap.customAnnexures) {
-    Object.keys(snap.customAnnexures).forEach(id => {
-      ANNEXURE_DATA[id] = snap.customAnnexures[id];
-    });
-  }
-
-  // Restore custom annexure IDs
-  if (snap.customAnnexureIds) {
-    CUSTOM_ANNEXURE_IDS.clear();
-    snap.customAnnexureIds.forEach(id => CUSTOM_ANNEXURE_IDS.add(id));
-  }
-
-  // Restore the dynamic SERVICE_ANNEXURE_MAP mapping
-  if (snap.serviceAnnexureMapSnap) {
-    Object.assign(SERVICE_ANNEXURE_MAP, snap.serviceAnnexureMapSnap);
-  }
-
-  initPanel();
-  renderPreview();
 }
 
 // ── Proposal State & Collaboration
@@ -366,20 +412,21 @@ async function loadProposalFromURL() {
 
   // 2. Fetch latest snapshot
   try {
-    const { data, error } = await db
+    const { data: versions, error } = await db
       .from('proposal_versions')
       .select('*')
       .eq('proposal_id', id)
       .order('created_at', { ascending: false })
-      .limit(1)
-      .single();
+      .limit(1);
 
-    if (error || !data) {
+    const latest = (versions && versions.length > 0) ? versions[0] : null;
+
+    if (!latest || !latest.snapshot) {
       console.warn('Could not load proposal version:', error);
       _isLoadingProposal = false;
       return;
     }
-    applySnapshot(data.snapshot);
+    applySnapshot(latest.snapshot);
   } catch (verErr) {
     console.warn('Error fetching snapshot:', verErr);
   } finally {

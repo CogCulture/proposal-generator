@@ -47,6 +47,29 @@ const disabledAnnexures = new Set();
 const disabledAnnexureRows = new Set();
 const disabledAnnexureSections = new Set();
 
+// Expose state objects on window for cross-script reliability
+if (typeof window !== 'undefined') {
+  window.selectedItems = selectedItems;
+  window.retainerLabelOverride = retainerLabelOverride;
+  window.paymentLabelOverride = paymentLabelOverride;
+  window.serviceNameOverrides = serviceNameOverrides;
+  window.serviceDescriptionOverrides = serviceDescriptionOverrides;
+  window.SERVICE_ORDER = SERVICE_ORDER;
+  window.annexureOverrides = annexureOverrides;
+  window.annexureTaskOverrides = annexureTaskOverrides;
+  window.annexureDetailOverrides = annexureDetailOverrides;
+  window.annexureNotesOverrides = annexureNotesOverrides;
+  window.annexureCatOverrides = annexureCatOverrides;
+  window.annexureHeadingOverrides = annexureHeadingOverrides;
+  window.CUSTOM_ANNEXURE_IDS = CUSTOM_ANNEXURE_IDS;
+  window.expandedBlocks = expandedBlocks;
+  window.expandedServices = expandedServices;
+  window.expandedAnnexureSections = expandedAnnexureSections;
+  window.disabledAnnexures = disabledAnnexures;
+  window.disabledAnnexureRows = disabledAnnexureRows;
+  window.disabledAnnexureSections = disabledAnnexureSections;
+}
+
 const ANNEXURE_DATA = {
   A: {
     title: "Annexure A",
@@ -339,6 +362,11 @@ const SERVICE_ANNEXURE_MAP = {
   video_production: { B1: ["TVC & Radio", "Photography"] },
 };
 
+if (typeof window !== 'undefined') {
+  window.ANNEXURE_DATA = ANNEXURE_DATA;
+  window.SERVICE_ANNEXURE_MAP = SERVICE_ANNEXURE_MAP;
+}
+
 function getActiveAnnexures() {
   const selectedSvcKeys = getOrderedServiceIds().filter(id => id !== 'annexures' && anyItemsInService(id));
   const result = {};
@@ -495,6 +523,7 @@ function initPanel() {
 
   // Remove deleted keys from SERVICE_ORDER
   SERVICE_ORDER = SERVICE_ORDER.filter(id => SERVICES[id]);
+  if (typeof window !== 'undefined') window.SERVICE_ORDER = SERVICE_ORDER;
 
   const svcIds = SERVICE_ORDER;
 
