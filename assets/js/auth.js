@@ -142,11 +142,10 @@ async function handleLogin(e) {
     closeAuthModal();
     updateAuthUI();
 
-    if (typeof loadDashboard === 'function') {
-      loadDashboard();
-    }
     if (typeof loadProposalFromURL === 'function') {
-      loadProposalFromURL();
+      await loadProposalFromURL();
+    } else if (typeof loadDashboard === 'function') {
+      loadDashboard();
     }
   } catch (err) {
     showAuthError('Unexpected error: ' + err.message);
@@ -220,11 +219,10 @@ async function handleSignup(e) {
     closeAuthModal();
     updateAuthUI();
 
-    if (typeof loadDashboard === 'function') {
-      loadDashboard();
-    }
     if (typeof loadProposalFromURL === 'function') {
-      loadProposalFromURL();
+      await loadProposalFromURL();
+    } else if (typeof loadDashboard === 'function') {
+      loadDashboard();
     }
   } catch (err) {
     showAuthError('Unexpected error during signup: ' + err.message);
